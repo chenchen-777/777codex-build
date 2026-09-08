@@ -1,0 +1,9 @@
+{
+  "$schema":"https://schema.tauri.app/config/2",
+  "productName":"777 Codex",
+  "version":"0.12.0",
+  "identifier":"codes.777.manager.tauri.candidate",
+  "build":{"frontendDist":"../bootstrap"},
+  "app":{"windows":[],"macOSPrivateApi":true,"security":{"capabilities":[{"identifier":"manager-window","windows":["main"],"local":false,"remote":{"urls":["http://127.0.0.1:*"]},"permissions":["allow-window-action"]}]}},
+  "bundle":{"active":false,"icon":["icons/icon.ico"]}
+}

@@ -1,5 +1,15 @@
 # 777 Codex — macOS 客户端构建源码
 
+## 当前版本：Tauri 迁移测试版 0.12.0
+
+当前构建入口为 `tauri/`，不再使用 Electron。系统 WebKit 负责界面，Rust 提供原生窗口与钥匙串适配，包内携带 Node 后台组件。历史 Electron 源码和 r44 下载仍保留供回退。
+
+这轮同步：圆形桌面/Dock 图标、首页「当前 Key / 同步账号 Key」、独立 Codex 管理导航、紧凑模型选择样式、网页登录授权重试和复制授权链接。
+
+首次使用请重新网页登录并同步 Key。Tauri 使用 macOS 钥匙串保存 AES 主密钥，配置仅保存认证加密后的凭证；不尝试解密或覆盖旧 Electron 登录数据。原有 `~/.codex` 聊天记录不迁移、不删除。
+
+解压后将完整的 `777 Codex.app` 放入 Applications。默认进入可用模式；`--isolated` 仅供不连接真实平台账号的隔离测试。网页直接唤起导入协议和自动更新通道尚未迁入，请使用账号同步和手动下载新版。
+
 此仓库公开管理工具的客户端构建源码，用于生成 Apple Silicon（arm64）与 Intel（x64）测试包。它不包含 777 平台服务端源码、用户配置、真实 API Key 或服务器凭证。
 
 下载入口：[777codex Releases](https://github.com/chenchen-777/777codex/releases)。仅在两种架构的构建检查通过后发布测试包；成功的构建记录不代表用户真实 Mac 全功能验收。
@@ -10,11 +20,11 @@
 
 ```sh
 npm ci
-node scripts/package-mac.mjs arm64
-# Intel Mac 使用：node scripts/package-mac.mjs x64
+npm run package:mac
+# Apple Silicon 和 Intel 必须分别在对应芯片 runner 上构建；还需要 Rust 和 Xcode Command Line Tools。
 ```
 
-输出在 `dist-mac`。构建过程进行原生架构检查、ad-hoc 签名验证、隔离目录中的程序启动和本地接口检查。所有测试使用隔离目录，不读取你的 Codex 会话或真实 Key。
+输出在 `dist-mac-tauri`。构建过程检查主程序、原生助手及 Node 三个文件的架构、ad-hoc 签名、隔离的 Tauri/WebKit 界面启动，以及合成凭证的钥匙串加解密。所有测试使用隔离目录，不读取你的 Codex 会话或真实 Key。
 
 ## 测试版范围
 

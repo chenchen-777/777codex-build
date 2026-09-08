@@ -2,3 +2,9 @@ node_modules/
 dist-mac/
 .dev/
 .env*
+dist-mac-tauri/
+tauri/src-tauri/target/
+tauri/src-tauri/gen/
+tauri/src-tauri/icons/
+tauri/backend/.dev/
+tauri/backend/.window-data/

@@ -1,4 +1,4 @@
-name: Build macOS test packages
+name: Build macOS Tauri test packages
 on:
   workflow_dispatch:
 permissions:
@@ -14,7 +14,7 @@ jobs:
           - runner: macos-15-intel
             arch: x64
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 20
+    timeout-minutes: 40
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -22,14 +22,16 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci --no-audit --no-fund
+      - name: Install Rust
+        run: rustup update stable --no-self-update && rustup default stable
       - name: Runtime unit tests
-        run: node --test test/macos-runtime.test.mjs test/import-protocol.test.mjs test/config-core.test.mjs test/provider-group.test.mjs
-      - name: Build and launch packaged app
-        run: node scripts/package-mac.mjs ${{ matrix.arch }}
+        run: node --test tauri/test/*.test.mjs tauri/backend/test/*.test.mjs
+      - name: Build and launch Tauri app, verify Keychain and architecture
+        run: node tauri/scripts/package-mac.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: mac-${{ matrix.arch }}
-          path: dist-mac/*
+          name: mac-tauri-${{ matrix.arch }}
+          path: dist-mac-tauri/*
           if-no-files-found: error
           retention-days: 14

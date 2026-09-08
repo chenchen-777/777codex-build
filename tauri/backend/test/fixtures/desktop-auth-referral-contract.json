@@ -1,0 +1,39 @@
+{
+  "syntheticOnly": true,
+  "baseUrl": "https://www.777codes.codes/api/v1",
+  "session": {
+    "session_id": "00000000-0000-4000-8000-000000000001",
+    "authorize_url": "https://www.777codes.codes/desktop/authorize?session_id=00000000-0000-4000-8000-000000000001",
+    "expires_in": 600,
+    "interval": 3
+  },
+  "tokens": {
+    "access_token": "dta_FAKE_ACCESS_TOKEN_CONTRACT_ONLY_12345678901234567890",
+    "refresh_token": "dtr_FAKE_REFRESH_TOKEN_CONTRACT_ONLY_12345678901234567890",
+    "token_type": "Bearer",
+    "expires_in": 900,
+    "user": {
+      "public_user_id": "usr_FAKE_PUBLIC_ID",
+      "display_name": "假用户",
+      "email": "f***@example.test"
+    }
+  },
+  "referral": {
+    "invite_code": "FAKECODE",
+    "share_url": "https://www.777codes.codes/download/777codex?ref=FAKE_PUBLIC_SLUG",
+    "installer_download_url": "https://downloads.example.test/777codex-FAKE.exe",
+    "invited_user_count": 3,
+    "total_commission": 12.5,
+    "pending_commission": 0,
+    "this_month_commission": 2.5,
+    "status_counts": { "registered": 2, "qualified": 0, "settled": 1, "reversed": 0 },
+    "rule_summary": {
+      "reward_trigger": "first_topup",
+      "download_rewards": false,
+      "registration_rewards": false,
+      "binding": "immutable_on_registration",
+      "ledger_authority": "platform_only",
+      "reversal_policy": "append_only_adjustment"
+    }
+  }
+}
