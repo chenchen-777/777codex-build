@@ -13,6 +13,7 @@ export async function runMacSmoke({app,window}) {
       if(getComputedStyle(document.querySelector('#codex-installer-panel')).display!=='none')throw new Error('Windows installer visible');
       return {ok:true,platform:checks['/api/health'].platform,arch:checks['/api/health'].arch,checks:Object.keys(checks),logo:true,macUi:true,windowSize:[innerWidth,innerHeight]};
     })()`);
+    await writeFile(process.env.MANAGER777_MAC_SMOKE.replace(/\.json$/,'.png'),(await window.webContents.capturePage()).toPNG());
     await writeFile(process.env.MANAGER777_MAC_SMOKE,JSON.stringify(result,null,2));app.exit(0);
   } catch(error) {
     await writeFile(process.env.MANAGER777_MAC_SMOKE,JSON.stringify({ok:false,error:error.message}));app.exit(1);

@@ -9,4 +9,5 @@ process.env.MANAGER777_CODEX_ROOT=paths.codex;
 process.env.MANAGER777_SKILL_ROOT=paths.skills;
 mkdirSync(join(paths.manager,'Window'),{recursive:true});
 app.setPath('userData',join(paths.manager,'Window'));
-await import('./main.mjs');
+try { await import('./main.mjs'); }
+catch(error) { console.error('macOS startup failed:',error);app.exit(1); }
