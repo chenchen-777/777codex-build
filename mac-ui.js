@@ -2,9 +2,6 @@
 window.manager777Mac=true;
 document.documentElement.dataset.platform='darwin';
 (() => {
-  const style=document.createElement('style');
-  style.textContent=`#codex-installer-panel,#home-uninstall,#codex-uninstall,#uninstall-view,#image-mcp-entry,#home-codex-zh,[data-page-link="enhance"],[data-extension-tab="plugins"],#manager-update-check,#manager-update-auto {display:none!important} .mac-notice {padding:16px;margin-bottom:16px;border:1px solid #c5d5e5;border-radius:14px;background:#edf3f9;color:#233e58;line-height:1.6;overflow-wrap:anywhere} .mac-notice a{color:#284d72;text-decoration:underline}`;
-  document.head.append(style);
   const note=document.createElement('div');note.className='mac-notice';note.id='mac-test-notice';note.setAttribute('role','note');
   note.textContent='macOS 测试版：支持 Key、模型配置、会话备份、MCP 与 Skill 配置管理。请先自行安装兼容的 Codex.app。汉化、Codex++、插件安装修复和一键安装组件暂未适配。未完成 Apple 公证及用户实机验收。';
   document.querySelector('#page-home .page-header').after(note);

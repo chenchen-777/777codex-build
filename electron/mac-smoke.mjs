@@ -16,6 +16,7 @@ export async function runMacSmoke({app,window}) {
     await writeFile(process.env.MANAGER777_MAC_SMOKE.replace(/\.json$/,'.png'),(await window.webContents.capturePage()).toPNG());
     await writeFile(process.env.MANAGER777_MAC_SMOKE,JSON.stringify(result,null,2));app.exit(0);
   } catch(error) {
+    console.error('Packaged UI smoke failed:',error.message);
     await writeFile(process.env.MANAGER777_MAC_SMOKE,JSON.stringify({ok:false,error:error.message}));app.exit(1);
   }
 }
