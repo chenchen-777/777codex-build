@@ -2,7 +2,7 @@ import { createHash } from "node:crypto";
 import { spawn } from "node:child_process";
 import { access, mkdir, readFile, readdir, rename, rm, stat, writeFile } from "node:fs/promises";
 import { createReadStream } from "node:fs";
-import { dirname, join, resolve } from "node:path";
+import { dirname, join, resolve, relative, isAbsolute, sep } from "node:path";
 import { AppError } from "./errors.mjs";
 
 export const CODEX_ZH_ARCHIVE_SHA256 = "7057C2C9E123AD7408CA1B0C4A2185DF20DAD33F563AD9E19B0F197CF089D7D3";
@@ -20,7 +20,8 @@ async function sha256(pathname) {
 function safeChild(root, ...parts) {
   const base = resolve(root);
   const target = resolve(base, ...parts);
-  if (target === base || !target.toLowerCase().startsWith(`${base.toLowerCase()}\\`)) {
+  const rel = relative(base, target);
+  if (!rel || rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel)) {
     throw new AppError("增强组件目录不安全，已停止操作", "UNSAFE_ENHANCEMENT_PATH", 500);
   }
   return target;

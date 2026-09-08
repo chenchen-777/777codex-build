@@ -1,14 +1,15 @@
 import { createHash } from "node:crypto";
 import { createWriteStream } from "node:fs";
 import { access, mkdir, readFile, rename, rm, stat, writeFile } from "node:fs/promises";
-import { basename, dirname, join, resolve } from "node:path";
+import { basename, dirname, join, resolve, relative, isAbsolute, sep } from "node:path";
 import { AppError } from "./errors.mjs";
 import { compareBuild, validateUpdateManifest } from "./update-core.mjs";
 
 const exists = path => access(path).then(() => true, () => false);
 function safeChild(root, ...parts) {
   const base = resolve(root); const target = resolve(base, ...parts);
-  if (target === base || !target.toLowerCase().startsWith(`${base.toLowerCase()}\\`)) throw new AppError("更新目录不安全", "UPDATE_PATH_UNSAFE", 500);
+  const rel = relative(base, target);
+  if (!rel || rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel)) throw new AppError("更新目录不安全", "UPDATE_PATH_UNSAFE", 500);
   return target;
 }
 async function atomicJson(pathname, value) {

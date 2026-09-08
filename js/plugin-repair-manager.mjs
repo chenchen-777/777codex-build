@@ -2,7 +2,7 @@ import { createHash, randomUUID } from "node:crypto";
 import { spawn } from "node:child_process";
 import { createReadStream } from "node:fs";
 import { access, lstat, mkdir, readFile, readdir, rename, rm, stat } from "node:fs/promises";
-import { join, resolve } from "node:path";
+import { join, resolve, relative, isAbsolute, sep } from "node:path";
 import { AppError } from "./errors.mjs";
 
 export const PLUGIN_REPAIR_ARCHIVE_SHA256 = "E4A8682246938CECC0B70E2A253B89F49410654B5F0438332DEB19D34BBEDF2C";
@@ -11,7 +11,8 @@ async function exists(pathname) { try { await access(pathname); return true; } c
 async function sha256(pathname) { const digest = createHash("sha256"); for await (const chunk of createReadStream(pathname)) digest.update(chunk); return digest.digest("hex").toUpperCase(); }
 function safeChild(root, ...parts) {
   const base = resolve(root); const target = resolve(base, ...parts);
-  if (target === base || !target.toLowerCase().startsWith(`${base.toLowerCase()}\\`)) throw new AppError("插件修复目录不安全，已停止操作", "UNSAFE_PLUGIN_REPAIR_PATH", 500);
+  const rel = relative(base, target);
+  if (!rel || rel === '..' || rel.startsWith(`..${sep}`) || isAbsolute(rel)) throw new AppError("插件修复目录不安全，已停止操作", "UNSAFE_PLUGIN_REPAIR_PATH", 500);
   return target;
 }
 function powershell(environment) { return join(environment.SystemRoot || environment.WINDIR || "C:\\Windows", "System32", "WindowsPowerShell", "v1.0", "powershell.exe"); }
