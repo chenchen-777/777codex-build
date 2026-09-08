@@ -1,0 +1,34 @@
+name: Build macOS test packages
+on:
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  package:
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - runner: macos-15
+            arch: arm64
+          - runner: macos-15-intel
+            arch: x64
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci --no-audit --no-fund
+      - name: Runtime unit tests
+        run: node --test test/macos-runtime.test.mjs test/import-protocol.test.mjs test/config-core.test.mjs test/provider-group.test.mjs
+      - name: Build and launch packaged app
+        run: node scripts/package-mac.mjs ${{ matrix.arch }}
+      - uses: actions/upload-artifact@v4
+        with:
+          name: mac-${{ matrix.arch }}
+          path: dist-mac/*
+          if-no-files-found: error
+          retention-days: 14

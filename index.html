@@ -1,0 +1,267 @@
+<!doctype html>
+<html lang="zh-CN">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>777 Codex · 折叠便携版 r43</title>
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="app-window">
+    <header class="titlebar">
+      <div class="brand">
+        <div class="brand-logo"><img src="assets/777codes-logo.png" alt="777codes" width="46" height="46"></div>
+        <div>
+          <div class="brand-title">777 Codex <span class="review-badge">便携试验版 r43</span></div>
+          <div class="brand-subtitle">让 Codex 更好用</div>
+        </div>
+      </div>
+      <div class="window-actions">
+        <div class="header-links"><button class="text-button" id="help-entry">使用帮助</button>
+        <button class="share-entry" id="referral-share" type="button" title="推广分享安装包"><span>推广分享</span></button>
+        </div>
+        <div class="window-controls" role="group" aria-label="窗口操作">
+          <button class="icon-button" id="window-toggle-size" type="button" title="展开窗口" aria-label="展开窗口" aria-pressed="false">
+            <svg viewBox="0 0 256 256" aria-hidden="true"><g class="expand-glyph"><polyline points="160 48 208 48 208 96"/><line x1="208" y1="48" x2="144" y2="112"/><polyline points="96 208 48 208 48 160"/><line x1="48" y1="208" x2="112" y2="144"/></g><g class="collapse-glyph"><polyline points="208 112 144 112 144 48"/><line x1="144" y1="112" x2="216" y2="40"/><polyline points="48 144 112 144 112 208"/><line x1="112" y1="144" x2="40" y2="216"/></g></svg>
+          </button>
+          <button class="icon-button" id="window-minimize" type="button" title="最小化窗口" aria-label="最小化窗口"><svg viewBox="0 0 256 256" aria-hidden="true"><line x1="48" y1="128" x2="208" y2="128"/></svg></button>
+          <button class="icon-button" id="window-close" type="button" title="关闭管理工具" aria-label="关闭管理工具"><svg viewBox="0 0 256 256" aria-hidden="true"><line x1="64" y1="64" x2="192" y2="192"/><line x1="192" y1="64" x2="64" y2="192"/></svg></button>
+        </div>
+      </div>
+    </header>
+
+    <div class="app-body">
+      <aside class="sidebar">
+        <nav aria-label="主导航">
+          <button class="nav-item active" data-page="home"><span class="nav-icon">⌂</span><span>首页</span></button>
+          <button class="nav-item" data-page="providers"><span class="nav-icon">◇</span><span>我的 Key</span></button>
+          <button class="nav-item" data-page="tools"><span class="nav-icon">▦</span><span>工具箱</span></button>
+          <button class="nav-item" data-page="settings"><span class="nav-icon">⚙</span><span>设置</span></button>
+        </nav>
+        <div class="version-indicator"><span></span> r43 便携版</div>
+      </aside>
+
+      <main class="main-content">
+        <section class="page active" id="page-home">
+          <section class="announcement">
+            <div class="announcement-icon">✦</div>
+            <div>
+              <strong id="runtime-title">正在连接管理服务</strong>
+              <p id="runtime-description">免配对网页导入；预览后确认保存，不自动切换 Key。</p>
+            </div>
+            <span class="status-pill" id="runtime-status">检查中</span>
+          </section>
+
+          <section class="panel home-summary">
+            <div class="summary-provider">
+              <div class="card-heading">
+                <div class="mini-logo"><img src="assets/777codes-logo.png" alt="777codes" width="39" height="39"></div>
+                <div><strong>777codes</strong><small id="account-name">正在检查登录…</small></div>
+                <button class="button ghost" id="account-entry" type="button">账号管理</button>
+              </div>
+              <div class="summary-balance"><small>账户余额</small><strong id="home-balance">—</strong><button class="text-button" id="refresh-balance">↻</button></div>
+              <div class="summary-actions">
+                <small>余额以当前 Key 的查询结果为准</small>
+              </div>
+            </div>
+            <div class="home-launch-config">
+              <label><span>这次使用的 Key</span><select id="home-key-select"><option value="">正在读取 Key 列表…</option></select></label>
+              <div class="home-model-controls"><label>模型<div class="input-action"><select id="home-model-select" disabled><option value="">请选择 Key</option></select><button class="button ghost" id="home-sync-models">同步模型</button></div></label><label>思考程度<select id="home-effort-select"><option value="none">无</option><option value="minimal">最少</option><option value="low">低</option><option value="medium">中</option><option value="high">高</option><option value="xhigh">最高</option></select></label></div>
+              <small id="home-key-hint">再次启动时，沿用上次选择的模型。</small>
+              <small id="home-model-message" role="status">尚未同步模型列表</small>
+              <details class="current-key-detail"><summary>当前使用状态</summary><strong id="home-provider-name"></strong><small id="home-provider-group"></small><small id="home-provider-model"></small><span id="home-provider-status">检查中</span></details>
+              <div class="start-row"><button class="button primary" id="home-start-with-key">启动 Codex</button><button class="button ghost" id="home-verify">检测连接</button><button class="text-button" data-page-link="providers">管理 Key</button></div>
+            </div>
+            <div class="summary-codex">
+              <div class="card-heading">
+                <div class="feature-icon coral">AI</div>
+                <div><strong id="home-codex-version">Codex Desktop</strong><small id="home-codex-state">正在检测…</small></div>
+              </div>
+              <div class="summary-actions">
+                <button class="button ghost" data-page-link="codex">安装 / 更新</button>
+                <button class="button ghost danger-text" id="home-uninstall">卸载</button>
+                <button class="button ghost" id="uninstall-view" hidden>查看卸载进度</button>
+              </div>
+            </div>
+          </section>
+
+          <section class="quick-section">
+            <div class="section-title"><div><h2>常用功能</h2></div><button class="text-button" data-page-link="tools">全部工具</button></div>
+            <div class="quick-grid">
+              <button class="quick-entry" data-page-link="sessions"><span class="feature-icon amber">话</span><div><strong>聊天记录</strong><small>查找、备份与恢复</small></div><b>›</b></button>
+              <button class="quick-entry" data-page-link="extensions"><span class="feature-icon mint">加</span><div><strong>插件</strong><small>插件、MCP 工具与技能</small></div><b>›</b></button>
+              <button class="quick-entry" id="home-codex-zh"><span class="feature-icon mint">译</span><div><strong>汉化 Codex</strong><small id="home-codex-zh-detail">检测、安装、启动与恢复</small></div><b>›</b></button>
+              <button class="quick-entry" data-page-link="enhance"><span class="feature-icon blue">修</span><div><strong>修复</strong><small>修复插件入口、恢复备份</small></div><b>›</b></button>
+            </div>
+          </section>
+
+          <section class="panel activity-panel">
+            <div class="section-title"><div><h2>最近操作</h2><p>只展示实际发生的操作</p></div><button class="text-button" data-page-link="logs">完整日志 ›</button></div>
+            <div class="activity-list" id="recent-operations">正在读取…</div>
+          </section>
+        </section>
+
+        <section class="page" id="page-tools"><section class="page-header"><div><h1>工具箱</h1><p>选择需要使用的工具。</p></div></section><div class="quick-grid"><button class="quick-entry" data-page-link="extensions"><strong>插件 / MCP / 技能</strong><b>›</b></button><button class="quick-entry" data-page-link="enhance"><strong>Codex++ 与插件修复</strong><b>›</b></button><button class="quick-entry" data-page-link="sessions"><strong>聊天记录</strong><b>›</b></button><button class="quick-entry" data-page-link="codex"><strong>安装、更新与卸载 Codex</strong><b>›</b></button></div></section>
+        <section class="page" id="page-providers">
+          <section class="page-header">
+            <div><h1>我的 Key</h1><p>添加 Key，或登录后从平台同步。</p></div>
+            <div class="header-actions"><span id="platform-import-status" role="status">正在检查网页关联…</span><button class="button ghost" id="enable-platform-import" hidden>重试网页关联</button><button class="button ghost" id="sync-platform-keys">同步平台 Key</button><button class="button ghost" id="import-current-provider">导入当前 Codex 配置</button><button class="button primary" data-modal-open="provider-modal">＋ 添加配置</button></div>
+          </section>
+
+          <p class="modal-note" id="platform-key-sync-status" role="status">同步已登录账号的 Key、分组与倍率；不会自动切换当前 Key 或模型。</p>
+          <div class="management-layout">
+            <aside class="category-panel panel">
+              <h3>任务类型</h3>
+              <button class="category-item active" data-scope="text"><span>文</span><div><strong>文字</strong><small>3 个配置</small></div></button>
+              <button class="category-item" data-scope="image"><span>图</span><div><strong>生图</strong><small>2 个配置</small></div></button>
+              <button class="category-item" data-scope="video"><span>视</span><div><strong>视频</strong><small>1 个配置</small></div></button>
+              <button class="category-item" data-scope="audio"><span>音</span><div><strong>音频</strong><small>0 个配置</small></div></button>
+              <button class="category-item" data-scope="multimodal"><span>多</span><div><strong>多模态</strong><small>1 个配置</small></div></button>
+              <button class="category-item" data-scope="other"><span>其</span><div><strong>其他类型</strong><small>0 个配置</small></div></button>
+              <div class="category-note">任务类型彼此独立，切换文字模型不会覆盖生图 Key。</div>
+            </aside>
+
+            <section class="provider-workspace">
+              <div class="provider-toolbar panel">
+                <div><strong id="provider-scope-title">文字配置</strong><small id="provider-scope-note">切换使用后写入 Codex 的文字模型路由</small></div>
+                <label class="compact-search">⌕ <input id="provider-search" type="search" placeholder="搜索名称、模型或地址"></label>
+              </div>
+
+              <div class="provider-list">
+                <div id="provider-list-live" class="empty-inline">正在读取加密 Key 配置库…</div>
+              </div>
+            </section>
+          </div>
+        </section>
+
+        <section class="page" id="page-enhance">
+          <section class="page-header"><div><span class="eyebrow">Codex++ 插件能力 · 内置重做</span><h1>Codex++ 增强</h1><p>这里只管理 Codex++ 的插件型功能；汉化已移回首页独立入口。</p></div><button class="button ghost" id="enhancements-refresh">刷新状态</button></section>
+          <section class="section-title enhancement-section-title"><div><h2>增强模块</h2><p>每项能力单独适配、启停和验收，未完成项目明确标记</p></div></section>
+          <div class="feature-management-grid" id="enhancement-capabilities"><div class="empty-inline">正在读取 Codex++ 功能状态…</div></div>
+        </section>
+
+        <section class="page" id="page-sessions">
+          <section class="page-header"><div><span class="eyebrow">Codex 会话安全管理</span><h1>会话管理</h1><p>当前版本提供真实统计与整库备份；删除和迁移暂不开放，避免误伤。</p></div><button class="button primary" id="backup-sessions">备份全部</button></section>
+          <div class="stat-grid"><div class="panel"><small>本机会话</small><strong id="session-count">—</strong><span>真实扫描</span></div><div class="panel"><small>最近备份</small><strong id="session-last-backup">尚未操作</strong><span>可手动恢复</span></div><div class="panel"><small>占用空间</small><strong id="session-size">—</strong><span>Codex 会话数据</span></div></div>
+          <section class="panel session-panel">
+            <div class="session-toolbar"><label class="compact-search">⌕ <input id="session-search" type="search" placeholder="搜索会话编号或路径"></label><select id="session-project"><option value="">全部会话</option></select><button class="button ghost" id="open-backups">备份目录</button></div>
+            <div class="session-list">
+              <div id="session-list-live" class="empty-inline">正在扫描本机会话…</div>
+            </div>
+          </section>
+        </section>
+
+        <section class="page" id="page-extensions">
+          <section class="page-header"><div><span class="eyebrow">插件、MCP 与 Skill 统一维护</span><h1>扩展中心</h1><p>每个组件只在所属分类中管理一次；修改配置后请重启 Codex。</p></div><button class="button ghost" id="extensions-refresh">刷新状态</button></section>
+          <div class="extension-tabs" role="tablist">
+            <button data-extension-tab="plugins">插件 <span id="plugin-total">—</span></button>
+            <button data-extension-tab="skills">Skill <span id="skill-total">—</span></button>
+            <button class="active" data-extension-tab="mcp">MCP <span id="mcp-total">—</span></button>
+          </div>
+          <section class="panel extension-manager">
+            <div class="extension-toolbar">
+              <div><strong id="extension-title">MCP 服务</strong><small id="extension-subtitle">管理 Codex 可调用的 stdio 与 HTTP MCP</small></div>
+              <div class="header-actions"><button class="button ghost" id="extension-recovery">配置快照</button><button class="button primary" id="extension-add">＋ 添加 MCP</button></div>
+            </div>
+            <div class="managed-list" data-extension-panel="mcp">
+              <article class="managed-row" id="image-mcp-entry">
+                <div class="feature-icon mint">图</div>
+                <div><div class="managed-title"><strong>777codes Image MCP</strong><span class="version-tag">v1.0.4</span></div><p>stdio MCP · 文生图、图片编辑、本地保存</p><small>安装时同时配置 777codes-image Skill；Codex 按需启动，不常驻后台。</small></div>
+                <span class="status-pill warning" id="image-mcp-state">○ 检测中</span>
+                <div class="managed-actions"><button class="button primary" id="image-mcp-install">一键安装</button><button class="button ghost" data-page-link="codex">查看配置</button></div>
+              </article>
+              <div id="mcp-live" aria-live="polite">正在读取 MCP 配置…</div>
+            </div>
+            <div class="managed-list" data-extension-panel="plugins" hidden>
+              <div class="modal-note">插件清单通过已安装 Codex 的官方管理内核读取。首批支持本地市场安装及已安装插件启停；卸载、更新和远程市场授权尚未接入。</div>
+              <div id="plugin-live" aria-live="polite">选择本页后读取实际插件清单。</div>
+            </div>
+            <div class="managed-list" data-extension-panel="skills" hidden>
+              <div class="modal-note">当前管理用户级 .agents/skills 与 Codex skills；系统级、项目级及链接目录不修改。导入脚本不会自动执行。</div>
+              <div id="skill-live" aria-live="polite">正在读取 Skill…</div>
+            </div>
+          </section>
+        </section>
+
+        <section class="page" id="page-codex">
+          <section class="page-header"><div><span class="eyebrow">官方客户端控制</span><h1>Codex Desktop</h1><p>在线下载、校验与安装；支持复用下载缓存。</p></div><span class="status-pill" id="codex-page-state">○ 检测中</span></section>
+          <section class="panel codex-status-card"><div class="codex-app"><div class="feature-icon coral large">AI</div><div><strong id="codex-page-version">Codex Desktop</strong><p id="codex-page-path">正在检测安装状态…</p></div></div><div class="codex-actions codex-control-grid"><button class="button primary" id="codex-launch">启动</button><button class="button ghost" id="codex-restart">重启</button><button class="button ghost" id="codex-download">安装 / 更新</button><button class="button ghost danger-text" id="codex-uninstall">卸载</button><button class="button ghost" id="codex-download-page">官方说明</button><button class="button ghost" id="codex-open-dir">打开目录</button></div></section>
+          <section class="panel" id="codex-installer-panel">
+            <div class="section-title"><div><h2>下载与安装</h2><p>1. 检查版本 → 2. 下载安装包 → 3. 安装 Codex</p></div></div>
+            <div class="install-next-step" role="status"><strong id="install-stage-title">先检查版本</strong><p id="install-stage-help">选择来源与安装方式，再检查版本。</p><button class="text-button" id="install-go-to-commit" hidden>前往安装 ↓</button></div>
+            <div class="install-options"><label class="field" for="install-source"><span>更新源</span><select id="install-source"><option value="mirror">官方镜像地址下载</option><option value="official">OpenAI 官方源</option></select></label><label class="field" for="install-route"><span>安装方式</span><select id="install-route"><option value="msix">通用安装</option><option value="portable">便携安装</option></select></label></div>
+            <p id="install-method-note">通用安装：安装到 Windows 应用列表。便携安装：解压到管理工具的独立目录。</p>
+            <div class="install-check-actions"><button class="button ghost" id="install-check">检查版本</button><button class="button ghost" id="install-adopt">识别已安装</button></div>
+            <dl class="install-info"><div><dt>可用版本</dt><dd id="install-version-info">尚未检查</dd></div><div><dt>适用系统</dt><dd id="install-system-info">检查后显示</dd></div><div><dt>安装包大小</dt><dd id="install-size-info">检查后显示</dd></div><div><dt>下载来源</dt><dd id="install-source-info">检查后显示</dd></div></dl>
+            <div class="install-location"><strong>安装包保存位置</strong><code id="install-package-path">正在读取保存位置…</code><small id="install-package-note">下载完成不等于安装完成。</small></div>
+            <p id="install-plan-description">首次无缓存时需要联网；程序包不内置 Codex。</p>
+            <section class="install-transfer" aria-label="下载进度"><h3>2. 下载安装包</h3><progress id="install-progress" max="100" value="0" aria-label="Codex 下载进度"></progress><p id="install-task-state" aria-live="polite">尚未开始</p>
+              <div class="install-transfer-actions"><button class="button primary" id="install-download" disabled>下载</button><button class="button ghost" id="install-pause" disabled>暂停</button><button class="button ghost" id="install-resume" disabled>继续 / 重试</button><button class="button ghost" id="install-cancel" disabled>取消下载</button></div>
+            </section>
+            <section class="install-finish"><h3>3. 安装 Codex</h3><p>下载并校验完成后，点击安装。仅下载不会安装到电脑。</p><div class="install-finish-actions"><button class="button primary" id="install-commit" disabled>安装 Codex</button><button class="button ghost" id="install-clear" disabled>清理此版本缓存</button></div></section>
+          </section>
+          <div class="codex-grid">
+            <section class="panel config-preview"><div class="section-title"><div><h2>当前生效配置</h2><p>由「供应商」页面维护</p></div><button class="text-button" data-page-link="providers">修改 ›</button></div><dl><div><dt>model</dt><dd id="config-model">—</dd></div><div><dt>model_provider</dt><dd id="config-provider">—</dd></div><div><dt>base_url</dt><dd id="config-base-url">—</dd></div><div><dt>wire_api</dt><dd>responses</dd></div><div><dt>response storage</dt><dd>disabled</dd></div></dl></section>
+            <section class="panel safety-flow"><div class="section-title"><div><h2>安全写入流程</h2><p>防止配置覆盖和环境损坏</p></div></div><ol><li><span>1</span><div><strong>读取并创建快照</strong><p>保留用户现有设置和未知字段</p></div></li><li><span>2</span><div><strong>预览差异后合并</strong><p>仅改动用户确认的供应商字段</p></div></li><li><span>3</span><div><strong>验证与自动回滚</strong><p>写入失败时恢复上一个快照</p></div></li></ol><button class="button ghost full" id="codex-snapshots">查看快照记录</button></section>
+          </div>
+        </section>
+
+        <section class="page" id="page-settings">
+          <section class="page-header"><div><span class="eyebrow">工具设置</span><h1>设置</h1><p>管理启动、更新、备份和隐私选项。</p></div></section>
+          <section class="panel settings-list">
+            <div class="setting-row"><div><strong>管理工具更新</strong><p>这里只更新 777 Codex 管理工具，不更新 Codex 客户端。</p></div><button class="button ghost" id="manager-update-check">检查更新</button></div>
+            <div class="setting-row"><div><strong>自动检查管理工具更新</strong><p id="manager-update-status">启动后只检查；发现新版本时由你确认下载和安装。</p></div><button class="switch on" id="manager-update-auto" data-live-setting aria-pressed="true"><span></span></button></div>
+            <div class="setting-row"><div><strong>备份与恢复</strong><p>修改配置和卸载前会保留备份。</p></div><button class="button ghost" data-page-link="sessions">查看备份</button></div>
+          </section>
+          <section class="panel about-card"><div class="mini-logo"><img src="assets/777codes-logo.png" alt="777codes" width="39" height="39"></div><div><strong>777 Codex r43 便携试验版</strong><p>解压后运行，需保留完整程序目录；用户配置仍保存在当前 Windows 用户目录。此试验包尚未签名。</p></div><button class="button ghost" data-page-link="logs">操作日志</button></section>
+        </section>
+        <section class="page" id="page-logs">
+          <section class="page-header"><div><span class="eyebrow">本机记录 · 不上传</span><h1>操作日志</h1><p>记录实际操作及错误编号，不保存 Key、请求正文和脚本内容。界面展示最近 1000 条以内的记录。</p></div><button class="button ghost" id="logs-refresh">刷新</button></section>
+          <section class="panel log-panel"><div class="session-toolbar"><label>结果 <select id="log-filter"><option value="">全部</option><option value="success">成功</option><option value="error">失败</option><option value="started">开始执行</option></select></label><a class="button ghost" href="/api/logs/export" download="777codex-operations.jsonl">导出脱敏日志</a></div><div id="logs-live" aria-live="polite">正在读取…</div></section>
+        </section>
+      </main>
+    </div>
+  </div>
+
+  <div class="modal-backdrop" id="provider-modal" hidden>
+    <section class="modal" role="dialog" aria-modal="true" aria-labelledby="provider-modal-title">
+      <div class="modal-header"><div><span class="eyebrow">供应商配置</span><h2 id="provider-modal-title">添加配置</h2></div><button class="icon-button" data-modal-close>×</button></div>
+      <div class="modal-body">
+        <div class="form-grid">
+          <input id="modal-provider-id" type="hidden">
+          <label class="field"><span>配置名称</span><input id="modal-provider-name" placeholder="例如：777codes 主线路"></label>
+          <label class="field"><span>任务类型（支持新类型标识）</span><input id="modal-provider-type" list="provider-type-list" maxlength="64" placeholder="image"><datalist id="provider-type-list"><option value="text">文字</option><option value="image">生图</option><option value="video">视频</option><option value="audio">音频</option><option value="multimodal">多模态</option></datalist></label>
+          <label class="field wide"><span>接口地址</span><input id="modal-provider-url" value="https://www.777codes.codes"></label>
+          <label class="field wide"><span>API Key</span><div class="input-action"><input id="modal-provider-key" type="password" placeholder="编辑时留空表示不更换"><button id="toggle-modal-key" type="button">显示</button></div></label>
+          <label class="field"><span>协议（未知协议也可保存）</span><input id="modal-provider-protocol" list="provider-protocol-list" maxlength="64" placeholder="openai-images"><datalist id="provider-protocol-list"><option value="responses"><option value="openai-responses"><option value="openai-images"><option value="codes777-image-task"><option value="gemini-generate-content"><option value="anthropic-messages"><option value="openai-videos"></datalist></label>
+          <div class="field"><label for="modal-model">模型</label><div class="input-action"><select id="modal-model"><option value="">请先同步模型</option></select><button id="modal-sync-models" type="button">同步模型</button></div><small id="modal-model-status" role="status" aria-live="polite">使用当前填写的 Key 获取平台模型列表</small></div>
+          <label class="field"><span>推理强度</span><select id="modal-reasoning"><option value="">请选择</option><option value="low">Low</option><option value="medium">Medium</option><option value="high">High</option><option value="xhigh">XHigh</option></select></label>
+        </div>
+        <div class="modal-note">同步模型只读取列表，不产生对话。保存前重新校验所选模型；Key 加密保存。编辑正在使用的配置后，需再次切换并重启 Codex 才能确保生效。</div>
+      </div>
+      <div class="modal-footer"><button class="button ghost" data-modal-close>取消</button><button class="button ghost" id="modal-verify">验证接口</button><button class="button primary" data-modal-save>保存配置</button></div>
+    </section>
+  </div>
+  <div class="toast" id="toast" role="status" aria-live="polite"></div>
+  <dialog id="feature-dialog" aria-labelledby="feature-dialog-title"></dialog>
+  <dialog id="uninstall-dialog" aria-labelledby="uninstall-title">
+    <div class="modal-header"><h2 id="uninstall-title">卸载 Codex</h2></div>
+    <div class="modal-body">
+      <p id="uninstall-message" role="status" aria-live="polite">准备卸载…</p>
+      <progress id="uninstall-progress" aria-label="正在卸载 Codex"></progress>
+      <p id="uninstall-elapsed" class="muted"></p>
+      <ol id="uninstall-events" aria-label="卸载执行记录"></ol>
+      <p id="uninstall-connection" role="status"></p>
+      <p class="modal-note">只卸载 Codex 程序。聊天记录会先备份，配置和 Key 保留。关闭此窗口不会取消卸载。</p>
+    </div>
+    <div class="modal-footer"><button type="button" class="button ghost" id="uninstall-close">后台继续</button></div>
+  </dialog>
+  <dialog id="account-dialog" aria-labelledby="account-dialog-title"><div class="modal-header"><div><span class="eyebrow">777codes 平台账号</span><h2 id="account-dialog-title">账号与推广</h2></div><button type="button" class="icon-button" id="account-dialog-close" aria-label="关闭">×</button></div><div class="modal-body" id="account-dialog-body"></div><div class="modal-footer" id="account-dialog-footer"></div></dialog>
+  <dialog id="confirmation-dialog" aria-labelledby="confirmation-title"><div class="modal-header"><h2 id="confirmation-title">确认操作</h2></div><div class="modal-body"><p id="confirmation-message"></p></div><div class="modal-footer"><button type="button" class="button ghost" id="confirmation-cancel">取消操作</button><button type="button" class="button primary" id="confirmation-accept">确认执行</button></div></dialog>
+  <script src="./ui.js"></script>
+  <script src="./features-ui.js"></script>
+  <script src="./account-ui.js"></script>
+  <script src="./install-ui.js"></script>
+  <script src="./import-ui.js"></script>
+</body>
+</html>

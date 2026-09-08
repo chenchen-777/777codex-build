@@ -1,0 +1,12 @@
+import {app} from 'electron';
+import {join} from 'node:path';
+import {mkdirSync} from 'node:fs';
+import {macPaths} from '../js/macos-runtime.mjs';
+if(process.platform!=='darwin')throw new Error('macOS entry only');
+const paths=macPaths();
+process.env.MANAGER777_ROOT=paths.manager;
+process.env.MANAGER777_CODEX_ROOT=paths.codex;
+process.env.MANAGER777_SKILL_ROOT=paths.skills;
+mkdirSync(join(paths.manager,'Window'),{recursive:true});
+app.setPath('userData',join(paths.manager,'Window'));
+await import('./main.mjs');

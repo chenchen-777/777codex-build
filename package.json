@@ -1,0 +1,29 @@
+{
+  "name": "777codex-desktop",
+  "productName": "777Codex 0.11 Candidate",
+  "version": "0.11.0",
+  "private": true,
+  "type": "module",
+  "description": "777Codex Windows deployment and management client",
+  "main": "electron/main.mjs",
+  "scripts": {
+    "package:online": "node scripts/package-online.mjs",
+    "package:online:dev": "node scripts/package-online.mjs --dev-unsigned",
+    "preview": "node scripts/server.mjs",
+    "desktop": "electron .",
+    "test": "node --test",
+    "package:win": "electron-packager . 777Codex --platform=win32 --arch=x64 --out=release --overwrite --asar.unpackDir=components --prune=true --ignore=\"^/(release|\\.npm-cache|\\.pack-staging|test)$\"",
+    "check": "node scripts/check.mjs",
+    "package:candidate": "node scripts/package-0.11.mjs",
+    "test:platform": "node scripts/platform-contract-probe.mjs",
+    "test:smoke": "node --test test/server-integration.test.mjs"
+  },
+  "dependencies": {
+    "@iarna/toml": "2.2.5",
+    "yaml": "2.9.0"
+  },
+  "devDependencies": {
+    "electron": "^38.0.0",
+    "electron-packager": "^17.1.2"
+  }
+}
