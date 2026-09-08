@@ -1,5 +1,5 @@
 import packager from 'electron-packager';
-import {mkdtemp,mkdir,cp,readFile,writeFile} from 'node:fs/promises';
+import {mkdtemp,mkdir,cp,readFile,writeFile,realpath} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {resolve,join} from 'node:path';
 import {execFile} from 'node:child_process';
@@ -33,7 +33,7 @@ await exec('/usr/bin/codesign',['--verify','--deep','--strict','--verbose=2',app
 const executable=join(appPath,'Contents','MacOS','777Codex');
 const binaryArch=(await exec('/usr/bin/lipo',['-archs',executable])).stdout.trim();
 if(binaryArch!==(arch==='x64'?'x86_64':'arm64'))throw new Error('Wrong Mach-O architecture: '+binaryArch);
-const dist=join(root,'dist-mac');await mkdir(dist,{recursive:true});const smokeRoot=await mkdtemp(join(tmpdir(),'777codex-smoke-'));const report=join(dist,`mac-${arch}-smoke.json`);
+const dist=join(root,'dist-mac');await mkdir(dist,{recursive:true});const smokeRoot=await realpath(await mkdtemp(join(tmpdir(),'777codex-smoke-')));const report=join(dist,`mac-${arch}-smoke.json`);
 await exec(executable,[],{timeout:60000,maxBuffer:4*1024*1024,env:{...process.env,MANAGER777_ISOLATED:'1',MANAGER777_ROOT:join(smokeRoot,'manager'),MANAGER777_CODEX_ROOT:join(smokeRoot,'codex'),MANAGER777_SKILL_ROOT:join(smokeRoot,'skills'),MANAGER777_MAC_SMOKE:report,PORT:'0'}});
 const smoke=JSON.parse(await readFile(report,'utf8'));if(!smoke.ok||smoke.arch!==arch)throw new Error('Packaged smoke failed');
 const zip=join(dist,`777Codex-0.11.0-mac-r44-${arch}-test.zip`);
