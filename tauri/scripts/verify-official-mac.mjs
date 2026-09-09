@@ -5,7 +5,7 @@ import {MacManager} from '../backend/js/mac-manager.mjs';
 if(process.platform!=='darwin'||process.env.CI!=='true')throw Error('Only run on an isolated macOS CI runner');
 const root=await realpath(await mkdtemp(join(tmpdir(),'777-official-acceptance-'))),home=join(root,'home'),target=join(home,'Applications','Codex.app');
 const manager=new MacManager({managerRoot:join(root,'manager'),home,isolated:false,backup:async()=>({fake:true})});
-manager.selected=async()=>{if(!await access(target).then(()=>true,()=>false))return {installed:false,running:false};const info=await manager.bundle(target);return {installed:true,running:false,installDirectory:target,version:info.version};};
+manager.selected=async()=>{if(!await access(target).then(()=>true,()=>false))return {installed:false,running:false};const info=await manager.bundleIdentity(target);return {installed:true,running:false,installDirectory:target,version:info.version};};
 await manager.load();
 const result={arch:process.arch,officialSource:true,realAccount:false,officialAppLaunched:false};
 try{
@@ -15,7 +15,12 @@ try{
  await manager.localize();result.chineseCopy=true;if(before!==await hash(original))throw Error('Official ASAR changed');
  await manager.removeZh();result.chineseRemoval=true;
  await manager.install();result.update=true;
+ // Alter only our temporary CI app, then prove install trust checks still reject
+ // it while uninstall can move the identified app to a recoverable location.
+ await writeFile(original,Buffer.concat([await readFile(original),Buffer.from('\n777 CI signature regression\n')]));
+ let rejected=false;try{await manager.bundle(target);}catch{rejected=true;}if(!rejected)throw Error('Damaged app unexpectedly passed trust checks');result.damagedSignatureRejected=true;
  await manager.uninstall();result.uninstall=true;if(await access(target).then(()=>true,()=>false))throw Error('App remains');
+ await access(join(manager.state.recoveryPath,'Contents','Resources','app.asar'));result.damagedAppUninstall=true;
  result.ok=true;
 }catch(error){
  if(process.arch==='x64'&&error.code==='MAC_ARCH_UNSUPPORTED'){result.ok=true;result.officialIntelUnsupported=true;}

@@ -25,18 +25,25 @@ export class MacManager{
   async status(){await this.load();return {ok:true,...this.state,busy:!!this.worker,isolated:this.isolated,architecture:this.arch,packagePath:this.dmg,packageExists:await exists(this.dmg),zhInstalled:await exists(join(this.zh,'Contents','Info.plist')),zhPath:this.zh,source:MAC_DOWNLOAD};}
   async report(phase,message){this.state={...this.state,phase,message,events:[...(this.state.events||[]).slice(-29),{at:new Date().toISOString(),message}]};await this.save();}
   async command(cmd,args,timeout=30000){try{return await this.run(cmd,args,{timeout,maxBuffer:4*1024*1024});}catch{throw new AppError(`${basename(cmd)} 执行未完成，请检查系统提示、权限或组件兼容性`,'MAC_COMMAND_FAILED',409);}}
-  async bundle(path,{official=true,architecture=true}={}){
+  // Identification is separate from trust/launchability. A damaged signature
+  // must not prevent the owner from removing a known, scoped app directory.
+  async bundleIdentity(path){
     ensure((await lstat(path)).isDirectory()&&!(await lstat(path)).isSymbolicLink(),'应用目录不能是链接','MAC_PATH_INVALID',409);
     const plist=join(path,'Contents','Info.plist');const value=async key=>(await this.command('/usr/bin/plutil',['-extract',key,'raw','-o','-',plist])).stdout.trim();
     const id=await value('CFBundleIdentifier'),exe=await value('CFBundleExecutable'),version=await value('CFBundleShortVersionString');
-    ensure(ids.has(id)&&basename(exe)===exe&&exe!=='.'&&exe!=='..','不是可管理的官方 Codex 应用','MAC_APP_INVALID',409);
+    ensure(ids.has(id)&&basename(exe)===exe&&exe!=='.'&&exe!=='..','无法识别为可管理的 Codex 应用','MAC_APP_INVALID',409);
     const executable=join(path,'Contents','MacOS',exe);
+    return {path,version,id,executable};
+  }
+  async bundle(path,{official=true,architecture=true}={}){
+    const info=await this.bundleIdentity(path),{executable}=info;
+    const plist=join(path,'Contents','Info.plist');const value=async key=>(await this.command('/usr/bin/plutil',['-extract',key,'raw','-o','-',plist])).stdout.trim();
     if(official){await this.command('/usr/bin/codesign',['--verify','--deep','--strict',path],120000);await this.command('/usr/sbin/spctl',['--assess','--type','execute',path],120000);}
     const arches=(await this.command('/usr/bin/lipo',['-archs',executable])).stdout.trim().split(/\s+/);
     if(architecture)ensure(arches.includes(this.arch==='x64'?'x86_64':'arm64'),`这个官方 Codex 安装包不支持当前 ${this.arch==='x64'?'Intel':'Apple'} 芯片，不能安装`,'MAC_ARCH_UNSUPPORTED',409);
     const minimum=await value('LSMinimumSystemVersion').catch(()=>null);
     if(minimum){const current=(await this.command('/usr/bin/sw_vers',['-productVersion'])).stdout.trim().split('.').map(Number),required=minimum.split('.').map(Number);for(let i=0;i<3;i++){if((current[i]||0)>(required[i]||0))break;ensure((current[i]||0)>=(required[i]||0),`Codex 需要 macOS ${minimum} 或更新版本`,'MAC_OS_UNSUPPORTED',409);}}
-    return {path,version,id,executable,arches};
+    return {...info,arches};
   }
   async selected(){return macCodexStatus(this.environment,{run:this.run,home:this.home});}
   async writableApp(path){
@@ -102,7 +109,7 @@ export class MacManager{
   }
   async uninstall(){
     const current=await this.selected();ensure(current.installed,'未检测到 Codex 应用','MAC_CODEX_MISSING',404);
-    await this.writableApp(current.installDirectory);await this.bundle(current.installDirectory,{architecture:false});
+    await this.writableApp(current.installDirectory);await this.bundleIdentity(current.installDirectory);
     ensure(!current.running,'请先保存工作并退出 Codex，再卸载','MAC_APP_RUNNING',409);
     await this.report('uninstalling','正在备份聊天记录');await this.backup();
     const recovery=join(dirname(current.installDirectory),`.777-uninstalled-${randomUUID()}.app`);

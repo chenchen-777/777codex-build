@@ -16,13 +16,13 @@ async function fixture(t,arch='arm64'){
  const root=await realpath(await mkdtemp(join(tmpdir(),'777-mac-fixture-')));t.after(()=>rm(root,{recursive:true,force:true}));
  const home=join(root,'home'),bundle=join(root,'fixture','Codex.app');await mkdir(join(bundle,'Contents','MacOS'),{recursive:true});await mkdir(join(bundle,'Contents','Resources'));
  await writeFile(join(bundle,'Contents','Info.plist'),'FAKE_PLIST');await writeFile(join(bundle,'Contents','MacOS','Codex'),'FAKE_EXECUTABLE');await writeFile(join(bundle,'Contents','Resources','app.asar'),asar());
- const calls=[],state={arch:'arm64',running:false,signatureFails:false};let backups=0;
+ const calls=[],state={arch:'arm64',running:false,signatureFails:false,id:'com.openai.codex'};let backups=0;
  const run=async(command,args)=>{
   calls.push([command,args]);
-  if(command.endsWith('plutil'))return {stdout:args[0]==='-extract'?({CFBundleIdentifier:'com.openai.codex',CFBundleExecutable:'Codex',CFBundleShortVersionString:'26.9',LSMinimumSystemVersion:'12.0'}[args[1]]||''):''};
+  if(command.endsWith('plutil'))return {stdout:args[0]==='-extract'?({CFBundleIdentifier:state.id,CFBundleExecutable:'Codex',CFBundleShortVersionString:'26.9',LSMinimumSystemVersion:'12.0'}[args[1]]||''):''};
   if(command.endsWith('lipo'))return {stdout:state.arch};if(command.endsWith('sw_vers'))return {stdout:'15.0'};
   if(command.endsWith('ps'))return {stdout:state.running?`123 ${join(home,'Applications','Codex.app','Contents','MacOS','Codex')}`:''};
-  if(command.endsWith('spctl')&&state.signatureFails)throw Error('signature failed');
+  if((command.endsWith('spctl')||command.endsWith('codesign'))&&state.signatureFails)throw Error('signature failed');
   if(command.endsWith('hdiutil')&&args[0]==='attach')await cp(bundle,join(args[args.indexOf('-mountpoint')+1],'Codex.app'),{recursive:true});
   if(command.endsWith('ditto'))await cp(args[0],args[1],{recursive:true});return {stdout:''};
  };
@@ -58,4 +58,25 @@ test('isolated mode never invokes commands; security action opens settings only'
 });
 test('signature failure cannot result in install ready, and mount is detached',async t=>{
  const f=await fixture(t);f.state.signatureFails=true;assert.equal((await act(f.manager,'download')).phase,'error');assert.equal(f.manager.state.sha256,undefined);assert.ok(f.calls.some(([c,a])=>c.endsWith('hdiutil')&&a[0]==='detach'));
+});
+
+test('uninstall ignores broken signatures and launch compatibility, preserving app and user data',async t=>{
+ const f=await fixture(t),m=f.manager;await act(m,'download');await act(m,'install');
+ const app=join(f.home,'Applications','Codex.app'),asarPath=join(app,'Contents','Resources','app.asar');
+ await writeFile(asarPath,'MODIFIED_APP_RESOURCE');
+ const userData=join(f.home,'.codex');await mkdir(userData);await writeFile(join(userData,'history.jsonl'),'USER_HISTORY');await writeFile(join(userData,'auth.json'),'SYNTHETIC_CREDENTIAL');
+ f.state.signatureFails=true;f.state.arch='unsupported';f.calls.length=0;
+ assert.equal((await act(m,'uninstall')).phase,'complete');await assert.rejects(access(app));
+ assert.equal(await readFile(join(m.state.recoveryPath,'Contents','Resources','app.asar'),'utf8'),'MODIFIED_APP_RESOURCE');
+ assert.equal(await readFile(join(userData,'history.jsonl'),'utf8'),'USER_HISTORY');assert.equal(await readFile(join(userData,'auth.json'),'utf8'),'SYNTHETIC_CREDENTIAL');
+ assert.equal(f.calls.some(([c])=>/codesign|spctl|lipo|sw_vers/.test(c)),false);
+ assert.equal(f.backups(),2);
+});
+
+test('uninstall still refuses wrong identity, running app, unapproved path and backup failure',async t=>{
+ const f=await fixture(t),m=f.manager;await act(m,'download');await act(m,'install');const app=join(f.home,'Applications','Codex.app');
+ f.state.signatureFails=true;f.state.id='com.other.app';assert.equal((await act(m,'uninstall')).phase,'error');await access(app);
+ f.state.id='com.openai.codex';f.state.running=true;assert.match((await act(m,'uninstall')).message,/退出/);await access(app);f.state.running=false;
+ const selected=m.selected.bind(m);m.selected=async()=>({installed:true,running:false,installDirectory:join(f.home,'Other.app')});assert.match((await act(m,'uninstall')).message,/自定义路径/);m.selected=selected;await access(app);
+ m.backup=async()=>{throw Error('FAKE_BACKUP_FAILURE');};assert.equal((await act(m,'uninstall')).phase,'error');await access(app);assert.equal(m.state.recoveryPath,undefined);
 });
