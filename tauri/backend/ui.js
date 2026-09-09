@@ -118,11 +118,15 @@
   $('#home-sync-models').addEventListener('click', async event => {
     const id = homeDraft.id, revision = ++homeDraft.revision;
     $('#home-model-message').textContent = '正在同步模型…';
-    const result = await runButton(event.currentTarget, '同步中…', () => api('/api/providers/models', { method: 'POST', body: JSON.stringify({ id }) }));
+    let failureMessage = '';
+    const result = await runButton(event.currentTarget, '同步中…', async () => {
+      try { return await api('/api/providers/models', { method: 'POST', body: JSON.stringify({ id }) }); }
+      catch (error) { failureMessage = error.message; throw error; }
+    });
     if (revision !== homeDraft.revision || id !== $('#home-key-select').value) return;
     homeDraft.models = result?.models || [];
     renderHomeModel();
-    if (!result) $('#home-model-message').textContent = '同步失败，请重试';
+    if (!result) $('#home-model-message').textContent = `同步失败：${failureMessage || '请重试'}`;
   });
   $('#home-model-select').addEventListener('change', () => { homeDraft.model = $('#home-model-select').value; homeDraft.dirty = true; renderHomeModel(); });
   $('#home-effort-select').addEventListener('change', () => { homeDraft.effort = $('#home-effort-select').value; homeDraft.dirty = true; renderHomeModel(); });
@@ -324,7 +328,14 @@
     if (!active) return showToast("尚无正在使用的 Key", true);
     void verifyProvider(active.id, event.currentTarget);
   });
-  $("#refresh-balance").addEventListener("click", () => $("#home-verify").click());
+  $("#refresh-balance").addEventListener("click", async event => {
+    const id = $('#home-key-select').value;
+    if (!id) return showToast('请先选择或同步账号 Key', true);
+    const result = await runButton(event.currentTarget, '刷新中…', () => api('/api/providers/usage', { method: 'POST', body: JSON.stringify({ id }) }));
+    if (id !== $('#home-key-select').value) return;
+    $('#home-balance').textContent = result ? result.usage.remaining : '—';
+    if (result) showToast(Number(result.usage.remaining) === 0 ? '余额为 0；调用模型前请充值或检查 Key 额度' : '余额已刷新');
+  });
   $('#home-uninstall').addEventListener('click', () => $('#codex-uninstall').click());
   $('#window-toggle-size').addEventListener('click', async event => {
     const button = event.currentTarget;
@@ -355,9 +366,9 @@
     $("#codex-page-state").textContent = result.installed ? `● ${result.running ? "运行中" : "已安装"}` : "○ 未安装";
     $("#codex-page-state").classList.toggle("success", result.installed);
     $("#codex-launch").disabled = !result.installed; $("#codex-restart").disabled = !result.installed; $("#codex-open-dir").disabled = !result.installed;
-    $("#codex-uninstall").disabled = !result.canUninstall || uninstallState.busy;
-    $('#home-uninstall').disabled = !result.canUninstall || result.isolated || uninstallState.busy;
-    $("#codex-uninstall").title = result.installed && !result.canUninstall ? "当前安装类型需在 Windows 应用设置中卸载" : "只卸载 Codex 应用；备份会话，原地保留配置与 Key";
+    $("#codex-uninstall").disabled = window.manager777Mac ? false : !result.canUninstall || uninstallState.busy;
+    $('#home-uninstall').disabled = window.manager777Mac ? false : !result.canUninstall || result.isolated || uninstallState.busy;
+    $("#codex-uninstall").title = window.manager777Mac ? '卸载所选官方 Codex；保留可恢复的应用副本、聊天记录和配置' : result.installed && !result.canUninstall ? "当前安装类型需在 Windows 应用设置中卸载" : "只卸载 Codex 应用；备份会话，原地保留配置与 Key";
     if (result.isolated) { $("#codex-page-state").textContent = "隔离预览"; $("#codex-page-path").textContent = "不读取本机安装路径"; $("#codex-download").disabled = true; $("#codex-uninstall").disabled = true; }
   }
   $("#codex-launch").addEventListener("click", (event) => runButton(event.currentTarget, "启动中…", async () => { const r = await api("/api/codex/launch", { method: "POST", body: "{}" }); showToast("Codex 已启动"); await refreshCodex(); return r; }));
@@ -527,7 +538,7 @@
     showToast(result.autoCheck ? '已开启启动时检查更新' : '已关闭自动检查；仍可在设置中手动检查');
   });
 
-  window.manager777 = { api, showToast, runButton, escapeHtml, providerGroupLabel, providerTypeLabel, openProviderScope, openPage, refreshProviders, refreshExtensions, refreshLocalState };
+  window.manager777 = { api, showToast, runButton, escapeHtml, providerGroupLabel, providerTypeLabel, openProviderScope, openPage, refreshProviders, refreshExtensions, refreshLocalState, refreshCodex };
   let followTimer;
   async function followModel() {
     try {

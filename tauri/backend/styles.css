@@ -947,6 +947,10 @@ dialog { max-height:calc(100dvh - 32px); overflow:auto; }
  .window-controls { gap:4px; padding-left:8px; }
  .header-links button { font-size:10px; }
 }
-:root[data-platform="darwin"] :is(#codex-installer-panel,#home-uninstall,#codex-uninstall,#uninstall-view,#image-mcp-entry,#home-codex-zh,[data-page-link="enhance"],[data-extension-tab="plugins"],#manager-update-check,#manager-update-auto) {display:none!important}
+:root[data-platform="darwin"] :is(#codex-installer-panel,#uninstall-view,#image-mcp-entry,[data-page-link="enhance"],[data-extension-tab="plugins"],#manager-update-check,#manager-update-auto) {display:none!important}
 :root[data-platform="darwin"] .mac-notice {padding:16px;margin-bottom:16px;border:1px solid #c5d5e5;border-radius:14px;background:#edf3f9;color:#233e58;line-height:1.6;overflow-wrap:anywhere}
 :root[data-platform="darwin"] .mac-notice a{color:#284d72;text-decoration:underline}
+.mac-action-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+.mac-action-grid button{white-space:normal;min-width:0}
+.mac-facts{display:grid;grid-template-columns:100px minmax(0,1fr);gap:8px;font-size:13px}
+.mac-facts dd{margin:0;overflow-wrap:anywhere}.mac-notice progress{width:100%}.mac-notice pre{white-space:pre-wrap;overflow-wrap:anywhere;max-height:180px;overflow:auto;font-size:12px}

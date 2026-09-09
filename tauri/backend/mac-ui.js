@@ -1,23 +1,48 @@
-// Included only in the macOS package, before the shared UI scripts.
+// Loaded before shared UI scripts. Callbacks run after boot.
 window.manager777Mac=true;
 document.documentElement.dataset.platform='darwin';
 (() => {
-  const note=document.createElement('div');note.className='mac-notice';note.id='mac-test-notice';note.setAttribute('role','note');
-  note.textContent='macOS 测试版：支持 Key、模型配置、会话备份、MCP 与 Skill 配置管理。请先自行安装兼容的 Codex.app。汉化、Codex++、插件安装修复和一键安装组件暂未适配。未完成 Apple 公证及用户实机验收。';
-  document.querySelector('#page-home .page-header').after(note);
-  const instructions=document.createElement('section');instructions.className='panel mac-notice';
-  instructions.innerHTML='<h2>安装与更新 Codex</h2><p>先从官方页面获取与你的芯片兼容的 Codex.app，放入 /Applications 或 ~/Applications。安装完成后返回本工具，选择 Key 并启动。更新或卸载由你在 macOS 中手动完成；本工具不会删除聊天记录。</p><p>Intel 版是管理工具的 Intel 版本，不代表官方 Codex 客户端已支持 Intel。</p>';
-  document.querySelector('#codex-installer-panel').before(instructions);
-  document.querySelector('#page-codex .page-header p').textContent='识别、启动与重启已安装的 Codex.app。';
-  document.querySelector('#manager-update-status').textContent='macOS 测试版暂不自动更新，请到 GitHub 下载新版。';
-  const link=document.createElement('a');link.href='https://github.com/chenchen-777/777codex/releases';link.textContent='GitHub 下载与版本说明';link.className='button ghost';
-  // Browser navigation is intentionally disabled in the packaged client; show a copyable address.
-  link.removeAttribute('href');link.setAttribute('role','button');link.tabIndex=0;
-  const copy=()=>navigator.clipboard.writeText('https://github.com/chenchen-777/777codex/releases').then(()=>window.manager777.showToast('下载页面地址已复制'));
-  link.addEventListener('click',copy);link.addEventListener('keydown',e=>{if(e.key==='Enter')void copy();});
-  document.querySelector('#manager-update-check').after(link);
+  const $=s=>document.querySelector(s);
+  const panel=document.createElement('section');panel.id='mac-components';panel.className='panel mac-notice';
+  panel.innerHTML=`<h2>Mac 下载与安装</h2><p>下载 → 校验 → 安装。更新时请先退出 Codex。</p>
+    <div class="mac-action-grid"><button class="button ghost" data-mac-action="check">检查来源</button><button class="button primary" data-mac-action="download">下载安装包</button><button class="button primary" data-mac-action="install">安装 / 更新</button><button class="button ghost danger-text" data-mac-action="uninstall">卸载 Codex</button></div>
+    <p id="mac-task-message" role="status" aria-live="polite">正在读取状态…</p><progress id="mac-task-progress" max="100" value="0"></progress>
+    <dl class="mac-facts"><dt>版本</dt><dd id="mac-package-version">下载后校验</dd><dt>芯片</dt><dd id="mac-arch">检测中</dd><dt>安装包位置</dt><dd id="mac-package-path">读取中</dd><dt>恢复副本</dt><dd id="mac-recovery">暂无</dd></dl>
+    <details><summary>任务记录</summary><pre id="mac-task-log"></pre></details>
+    <h3 id="mac-zh-heading">汉化 Codex</h3><p>创建独立中文副本，保留官方应用。官方更新后需要重新构建；未知版本会停止，不强行修改。</p>
+    <div class="mac-action-grid"><button class="button primary" data-mac-action="zh-install">构建 / 更新中文版</button><button class="button ghost" data-mac-action="zh-launch">启动中文版</button><button class="button ghost" data-mac-action="zh-remove">移除中文版</button><button class="button ghost" data-mac-action="security">打开安全设置</button></div>
+    <p>本工具和中文副本尚未通过 Apple 公证。“打开安全设置”只导航到设置，不会自动授权或关闭系统防护。</p>`;
+  $('#codex-installer-panel')?.before(panel);
+  $('#codex-download').textContent='安装 / 更新';
+  $('#codex-uninstall').textContent='卸载';$('#home-uninstall').textContent='卸载';
+  $('#home-codex-zh-detail').textContent='构建、启动和移除中文副本';
+  const intro=$('#page-codex .page-header p');if(intro)intro.textContent='管理 Mac 客户端、安装包和中文副本。';
+  $('#manager-update-status').textContent='请从平台下载与你芯片匹配的管理工具新版。';
+  let pending=false,lastBusy=false;
+  function showPanel(zh=false){window.manager777.openPage('codex');(zh?$('#mac-zh-heading'):panel).scrollIntoView({behavior:'smooth',block:'start'});}
+  const confirmations={install:'将安装已校验的官方 Codex。更新前请先退出客户端；旧程序保留恢复副本，聊天记录和 Key 不会删除。继续？',uninstall:'只卸载当前识别到的官方 Codex，保留聊天记录、Key 和程序恢复副本。请先退出客户端。继续？','zh-install':'将从官方应用创建独立中文副本，并使用本地签名。官方文件不修改；副本不是 Apple 公证应用，首次运行可能需要你在系统设置确认。继续？','zh-remove':'移除独立中文副本并保留恢复副本，官方应用及聊天记录不受影响。继续？'};
+  async function refresh(){
+    try{const s=await window.manager777.api('/api/mac/status');
+      $('#mac-task-message').textContent=s.message;
+      $('#mac-package-version').textContent=s.version||'下载后校验';$('#mac-arch').textContent=s.architecture==='arm64'?'Apple 芯片':'Intel（官方包需单独校验兼容性）';
+      $('#mac-package-path').textContent=s.packagePath;$('#mac-recovery').textContent=s.recoveryPath||'暂无';
+      $('#mac-task-log').textContent=(s.events||[]).map(e=>`${e.at} ${e.message}`).join('\n');
+      const progress=$('#mac-task-progress');if(s.busy&&!s.size)progress.removeAttribute('value');else progress.value=s.phase==='ready'||s.phase==='complete'?100:Math.min(100,s.size?100*(s.bytes||0)/s.size:0);
+      panel.querySelectorAll('[data-mac-action]').forEach(b=>{b.disabled=pending||s.busy||s.isolated||b.dataset.macAction==='install'&&(!s.packageExists||!s.sha256)||['zh-launch','zh-remove'].includes(b.dataset.macAction)&&!s.zhInstalled;});
+      if(lastBusy&&!s.busy)await window.manager777.refreshCodex();lastBusy=s.busy;
+    }catch(error){$('#mac-task-message').textContent=`状态读取失败：${error.message}`;}
+  }
+  async function act(action){
+    if(pending)return;pending=true;
+    try{if(confirmations[action]&&!await window.manager777.confirm(confirmations[action]))return;await window.manager777.api('/api/mac/action',{method:'POST',body:JSON.stringify({action,confirm:`MAC_${action}`})});}
+    catch(error){window.manager777.showToast(error.message,true);$('#mac-task-message').textContent=error.message;}
+    finally{pending=false;await refresh();}
+  }
   document.addEventListener('click',event=>{
-    const target=event.target.closest('#codex-download');
-    if(target){event.preventDefault();event.stopImmediatePropagation();document.querySelector('#codex-download-page').click();}
+    const target=event.target.closest('[data-mac-action],#codex-download,#codex-uninstall,#home-uninstall,#home-codex-zh');if(!target)return;
+    event.preventDefault();event.stopImmediatePropagation();
+    if(target.dataset.macAction){void act(target.dataset.macAction);return;}
+    showPanel(target.id==='home-codex-zh');if(target.id==='codex-uninstall'||target.id==='home-uninstall')void act('uninstall');
   },true);
+  document.addEventListener('DOMContentLoaded',()=>{void refresh();setInterval(()=>{if(!document.hidden)void refresh();},1500);});
 })();

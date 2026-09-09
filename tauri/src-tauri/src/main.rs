@@ -88,6 +88,7 @@ fn main(){
                     let _=window.eval(r#"(async()=>{
                         const h=await(await fetch('/api/health')).json();
                         if(h.isolated!==true||!document.querySelector('#home-key-heading')||!document.querySelector('.sidebar [data-page="codex"]')||!window.window777)throw Error('UI smoke failed');
+                        if(window.manager777Mac&&(!document.querySelector('#mac-components')||!document.querySelector('[data-mac-action="install"]')||!window.manager777?.refreshCodex))throw Error('Mac components UI failed');
                         await window.__TAURI_INTERNALS__.invoke('window_action',{action:'smoke-pass'});
                     })()"#);
                 }

@@ -26,5 +26,5 @@ test('compact copy retains meaningful model states and detail access',()=>{
  const result=homeNavigation(html,ui);
  assert.ok(result.html.includes('<summary>配置详情</summary>'));
  assert.ok(!result.ui.includes('启动前检查 Key 是否支持此模型。'));
- for(const text of ['模型待验证','该 Key 不支持此模型','同步失败，请重试','待实测'])assert.ok(result.ui.includes(text));
+ for(const text of ['模型待验证','该 Key 不支持此模型','同步失败：','failureMessage','待实测'])assert.ok(result.ui.includes(text));
 });

@@ -23,7 +23,7 @@ import { errorMessage, normalizeModels, normalizeUsage, redactSensitiveToml } fr
 import { AuditLog, redact } from "../js/audit-log.mjs";
 import { AppError } from "../js/errors.mjs";
 import { createFeatureApi } from "./feature-api.mjs";
-import { syncModels, validateTextProfile } from '../js/model-service.mjs';
+import { syncModels, syncUsage, validateTextProfile } from '../js/model-service.mjs';
 import { CCSLinkImport } from '../js/ccs-link-import.mjs';
 import { ModelFollow, prepareFollowedModel } from '../js/model-follow.mjs';
 import { normalizeDescriptor, providerAdapter, requireProviderAdapter } from '../js/provider-descriptor.mjs';
@@ -35,6 +35,7 @@ import { InstallEngine } from '../js/install-engine.mjs';
 import { InstallManager } from '../js/install-manager.mjs';
 import { UninstallTask, performUninstall } from '../js/uninstall-task.mjs';
 import {macUnavailableRoute} from '../js/macos-runtime.mjs';
+import {MacManager} from '../js/mac-manager.mjs';
 
 const projectRoot = fileURLToPath(new URL("../", import.meta.url));
 const configuredPort = Number(process.env.PORT ?? (process.versions.electron ? 0 : 4179));
@@ -46,10 +47,11 @@ const codexRoot = process.env.MANAGER777_CODEX_ROOT || (isolated ? join(projectR
 const managerRoot = process.env.MANAGER777_ROOT || (isolated ? join(projectRoot, ".dev", "manager") : join(process.env.APPDATA, "777Codex-0.11-Candidate"));
 const userSkillRoot = process.env.MANAGER777_SKILL_ROOT || (isolated ? join(projectRoot, ".dev", "skills") : join(process.env.USERPROFILE, ".agents", "skills"));
 export const audit = new AuditLog(managerRoot);
+export const macManager = new MacManager({managerRoot,isolated,backup:()=>backupSessions(codexRoot,managerRoot),audit});
 const sessionToken = randomBytes(32).toString("hex");
 let busyOperation = null;
 const uninstallTask = new UninstallTask({ audit, execute: report => performUninstall({ installManager, status: codexStatus, backup: () => backupSessions(codexRoot, managerRoot), uninstall: onProgress => uninstallCodex(process.env, { onProgress }) }, report) });
-export const getBusyOperation = () => busyOperation || (uninstallTask.state.busy ? { action: 'Codex 卸载', startedAt: uninstallTask.state.startedAt } : null) || (installManager?.worker ? { action: 'Codex 下载或安装', startedAt: new Date().toISOString() } : null);
+export const getBusyOperation = () => busyOperation || (macManager.worker ? {action:'Mac 组件任务',startedAt:new Date().toISOString()} : null) || (uninstallTask.state.busy ? { action: 'Codex 卸载', startedAt: uninstallTask.state.startedAt } : null) || (installManager?.worker ? { action: 'Codex 下载或安装', startedAt: new Date().toISOString() } : null);
 const startedAt = Date.now();
 const contentTypes = {
   ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8",
@@ -229,6 +231,15 @@ async function activeImageEnvironment() {
 }
 
 async function handleApi(request, response, pathname) {
+  if (pathname === '/api/mac/status' && request.method === 'GET') {
+    if(process.platform!=='darwin')throw new AppError('此入口仅用于 Mac','MAC_ONLY',409);
+    sendJson(response,200,await macManager.status());return true;
+  }
+  if (pathname === '/api/mac/action' && request.method === 'POST') {
+    requireTrusted(request);const p=await readJsonBody(request);
+    if(p.confirm!==`MAC_${p.action}`)throw new AppError('请确认此次 Mac 操作','CONFIRMATION_REQUIRED',400);
+    sendJson(response,202,await macManager.start(p.action));return true;
+  }
   if (request.method === 'GET' && pathname === '/api/codex/installer') { sendJson(response,200,await installManager.status()); return true; }
   if (request.method === 'POST' && pathname.startsWith('/api/codex/installer/')) {
     requireTrusted(request); const p=await readJsonBody(request); let r;
@@ -352,6 +363,10 @@ async function handleApi(request, response, pathname) {
     requireTrusted(request);
     sendJson(response, 200, await syncModels(await profileFromInput(await readJsonBody(request)))); return true;
   }
+  if (request.method === 'POST' && pathname === '/api/providers/usage') {
+    requireTrusted(request);
+    sendJson(response, 200, await syncUsage(await profileFromInput(await readJsonBody(request)))); return true;
+  }
   if (request.method === "POST" && pathname === "/api/providers/activate") {
     requireTrusted(request); const payload = await readJsonBody(request);
     const existing = (await listProviders(managerRoot)).find(p => p.id === String(payload.id));
@@ -465,8 +480,8 @@ export const server = http.createServer(async (request, response) => {
       mutation = writeRequest && !passiveRefresh;
       if (writeRequest) requireTrusted(request);
       if (mutation) {
-        if (isolated && (/^\/api\/codex\//.test(rawPath) || /^\/api\/enhancements\//.test(rawPath) || rawPath === "/api/extensions/image-mcp/install" || /^\/api\/manager-update\/(download|install)$/.test(rawPath))) throw new AppError("隔离预览禁止启动或安装本机 Codex；请在试验机桌面候选包中操作", "ISOLATED_PREVIEW", 403);
-        if (busyOperation || uninstallTask.state.busy || (installManager.worker && rawPath !== '/api/codex/installer/control')) throw new AppError("另一个操作正在执行，请稍后重试", "OPERATION_BUSY", 409);
+        if (isolated && (/^\/api\/mac\//.test(rawPath) || /^\/api\/codex\//.test(rawPath) || /^\/api\/enhancements\//.test(rawPath) || rawPath === "/api/extensions/image-mcp/install" || /^\/api\/manager-update\/(download|install)$/.test(rawPath))) throw new AppError("隔离预览禁止启动或安装本机 Codex；请在试验机桌面候选包中操作", "ISOLATED_PREVIEW", 403);
+        if (busyOperation || macManager.worker || uninstallTask.state.busy || (installManager.worker && rawPath !== '/api/codex/installer/control')) throw new AppError("另一个操作正在执行，请稍后重试", "OPERATION_BUSY", 409);
         busyOperation = { action: rawPath, startedAt: new Date().toISOString(), requestId }; ownsBusy = true;
         await audit.record({ id: requestId, action, outcome: "started" });
       }

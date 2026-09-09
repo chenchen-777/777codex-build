@@ -14,7 +14,7 @@ jobs:
           - runner: macos-15-intel
             arch: x64
     runs-on: ${{ matrix.runner }}
-    timeout-minutes: 40
+    timeout-minutes: 60
     steps:
       - uses: actions/checkout@v4
       - uses: actions/setup-node@v4
@@ -26,6 +26,8 @@ jobs:
         run: rustup update stable --no-self-update && rustup default stable
       - name: Runtime unit tests
         run: node --test tauri/test/*.test.mjs tauri/backend/test/*.test.mjs
+      - name: Verify official Mac install, update, Chinese copy and uninstall in a temporary home
+        run: node tauri/scripts/verify-official-mac.mjs
       - name: Build and launch Tauri app, verify Keychain and architecture
         run: node tauri/scripts/package-mac.mjs
       - uses: actions/upload-artifact@v4

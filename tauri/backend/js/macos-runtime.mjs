@@ -12,9 +12,10 @@ export function parseMacPids(output,executable) {
   return output.split('\n').flatMap(line=>{const m=line.trim().match(/^(\d+)\s+(.+)$/);return m&&m[2]===executable?[Number(m[1])]:[];});
 }
 export async function macCodexStatus(environment=process.env,{run=exec,exists=p=>access(p).then(()=>true,()=>false),home=homedir()}={}) {
-  const candidates=[environment.CODEX_DESKTOP_PATH,join(home,'Applications','Codex.app'),'/Applications/Codex.app'].filter(Boolean);
+  const candidates=[environment.CODEX_DESKTOP_PATH,join(home,'Applications','Codex.app'),'/Applications/Codex.app',join(home,'Applications','ChatGPT.app'),'/Applications/ChatGPT.app'].filter(Boolean);
   for(const bundle of candidates){
     if(!bundle.endsWith('.app')||!await exists(join(bundle,'Contents','Info.plist')))continue;
+    if(!await exists(join(bundle,'Contents','Resources','app.asar')))continue;
     const field=async key=>(await run('/usr/bin/plutil',['-extract',key,'raw','-o','-',join(bundle,'Contents','Info.plist')],{timeout:10000})).stdout.trim();
     const name=await field('CFBundleExecutable');
     if(!name||basename(name)!==name||name==='.'||name==='..')throw new AppError('Codex 应用信息无效','MAC_APP_INVALID',409);
