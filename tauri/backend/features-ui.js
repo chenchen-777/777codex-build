@@ -150,6 +150,7 @@
   }
   async function refreshEnhancements() {
     const host = $("#enhancement-capabilities");
+    if (window.__TAURI_INTERNALS__ || window.manager777Mac) return refreshCodexpp(host);
     try {
       const result = await api("/api/enhancements"); const zh = result.codexZh;
       $("#home-codex-zh-detail").textContent = zh.installed ? zh.compatible ? "已安装 · 点击管理或启动" : "官方已更新 · 需要重建" : "检测、安装、启动与恢复";
@@ -162,6 +163,19 @@
       host.querySelector('[data-action="plugin-recoveries"]').addEventListener("click", e => runButton(e.currentTarget, "读取中…", pluginRepairRecoveries));
       return result;
     } catch (error) { failure(host, error); $("#home-codex-zh-detail").textContent = "汉化状态检测失败"; throw error; }
+  }
+  async function refreshCodexpp(host) {
+    try {
+      const r=await api('/api/enhancements/codexpp');
+      host.innerHTML=`<article class="panel codexpp-panel"><div class="title-line"><strong>Codex++</strong><span class="status-pill">${h(r.version)}</span></div><p>${h(r.error||(!r.available?'当前安装包缺少增强核心，请更新管理工具。':r.state.message))}</p><div class="codexpp-settings">${r.features.map(f=>`<label class="codexpp-option"><input type="checkbox" data-codexpp-flag="${h(f.id)}" ${r.settings[f.id]?'checked':''} ${!r.available?'disabled':''}><span>${h(f.name)}</span></label>`).join('')}</div><div class="enhancement-actions">${button('pp-save','保存设置',r.available?'':'disabled')}${button('pp-start','启动 Codex++',r.available?'':'disabled')}</div><small>先关闭 Codex，再从这里增强启动。不会改写当前 Key，也不修改官方安装包。</small></article><article class="panel codexpp-panel"><div class="title-line"><strong>插件修复</strong><span class="status-pill">${r.marketplace?.registered&&!r.marketplace?.needsRepair?'已注册':'待检查／修复'}</span></div><p>修复本地插件市场并重新注册，原目录和配置会保留。</p><div class="enhancement-actions">${button('pp-repair','修复插件',r.available?'':'disabled')}${button('pp-history','恢复记录')}</div><div id="codexpp-history"></div></article>`;
+      const bind=(action,label,fn)=>host.querySelector(`[data-action="${action}"]`).addEventListener('click',e=>runButton(e.currentTarget,label,fn));
+      const settings=()=>Object.fromEntries([...host.querySelectorAll('[data-codexpp-flag]')].map(e=>[e.dataset.codexppFlag,e.checked]));
+      bind('pp-save','保存中…',async()=>{const result=await post('/api/enhancements/codexpp/settings',{settings:settings()});showToast(result.message);});
+      bind('pp-start','连接中…',async()=>{if(!await ask('请先保存对话并关闭 Codex。按当前勾选的设置增强启动？'))return;await post('/api/enhancements/codexpp/settings',{settings:settings()});await post('/api/enhancements/codexpp/launch',{confirm:'START_CODEXPP'});await refreshCodexpp(host);});
+      bind('pp-repair','修复中…',async()=>{if(!await ask('请先关闭 Codex。修复插件市场并注册？原配置与目录将保留在恢复记录中。'))return;const result=await post('/api/enhancements/codexpp/repair',{confirm:'REPAIR_PLUGINS'});showToast(result.message);await refreshCodexpp(host);});
+      bind('pp-history','读取中…',async()=>{const result=await api('/api/enhancements/codexpp/recoveries');$('#codexpp-history').textContent=result.recoveries.length?result.recoveries.map(e=>`${new Date(e.time).toLocaleString()} · ${e.phase==='complete'?'修复完成，原文件已保留':'已回滚'} · ${e.id}`).join('\n'):'暂无记录';});
+      return r;
+    }catch(e){failure(host,e);}
   }
   async function openCodexZh() {
     const result = await api("/api/enhancements"); const zh = result.codexZh;

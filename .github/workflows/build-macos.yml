@@ -26,6 +26,10 @@ jobs:
         run: rustup update stable --no-self-update && rustup default stable
       - name: Runtime unit tests
         run: node --test tauri/test/*.test.mjs tauri/backend/test/*.test.mjs
+      - name: Build and test pinned Codex++ core
+        run: |
+          cargo test --locked --manifest-path tauri/codexpp-engine/Cargo.toml
+          cargo build --release --locked --manifest-path tauri/codexpp-engine/Cargo.toml
       - name: Verify official Mac install, update, Chinese copy and uninstall in a temporary home
         run: node tauri/scripts/verify-official-mac.mjs
       - name: Build and launch Tauri app, verify Keychain and architecture

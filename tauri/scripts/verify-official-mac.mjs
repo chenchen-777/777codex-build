@@ -3,6 +3,7 @@ import {mkdtemp,realpath,access,readFile,writeFile,mkdir} from 'node:fs/promises
 import {tmpdir} from 'node:os';import {join} from 'node:path';import {createHash} from 'node:crypto';
 import {MacManager} from '../backend/js/mac-manager.mjs';
 import {macCodexStatus,stopMacCodex} from '../backend/js/macos-runtime.mjs';
+import {CodexppManager} from '../backend/js/codexpp-manager.mjs';
 if(process.platform!=='darwin'||process.env.CI!=='true')throw Error('Only run on an isolated macOS CI runner');
 const root=await realpath(await mkdtemp(join(tmpdir(),'777-official-acceptance-'))),home=join(root,'home'),target=join(home,'Applications','Codex.app');
 const manager=new MacManager({managerRoot:join(root,'manager'),home,isolated:false,backup:async()=>({fake:true})});
@@ -25,6 +26,16 @@ try{
   await stopMacCodex({CODEX_DESKTOP_PATH:manager.zh});
  }
  await manager.removeZh();result.chineseRemoval=true;
+ const codexHome=join(home,'.codex');await mkdir(codexHome,{recursive:true});
+ const codexpp=new CodexppManager({codexRoot:codexHome,managerRoot:join(root,'codexpp-test'),codexStatus:()=>macCodexStatus({CODEX_DESKTOP_PATH:target}),enginePath:new URL('../codexpp-engine/target/release/777-codexpp',import.meta.url).pathname});
+ try{
+  await codexpp.save({codexAppPasteFix:true,codexAppPluginMarketplaceUnlock:true,codexAppMarkdownExport:true});
+  await codexpp.repair();result.codexppMarketplaceRegistered=(await codexpp.status()).marketplace.registered;
+  await codexpp.launch();await new Promise(r=>setTimeout(r,5000));
+  if((await codexpp.status()).state.phase!=='running'||!(await macCodexStatus({CODEX_DESKTOP_PATH:target})).running)throw Error('Codex++ runtime did not remain attached');
+  result.codexppRuntimeAttached=true;result.officialAppLaunched=true;
+  if(before!==await hash(original))throw Error('Codex++ changed official ASAR');result.codexppOfficialUnchanged=true;
+ }finally{await stopMacCodex({CODEX_DESKTOP_PATH:target});codexpp.dispose();}
  await manager.install();result.update=true;
  // Alter only our temporary CI app, then prove install trust checks still reject
  // it while uninstall can move the identified app to a recoverable location.

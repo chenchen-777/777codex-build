@@ -34,3 +34,10 @@ body { display:block!important; min-height:100dvh; }
 #page-home .home-launch-config :is(button,select):focus-visible { outline:2px solid #7295ad; outline-offset:2px; }
 #page-home .home-launch-config button:active:not(:disabled) { transform:scale(.98); }
 @media(max-width:420px) { #page-home .home-launch-config { padding:12px; gap:9px; } }
+.codexpp-panel {padding:18px;min-width:0;}
+.codexpp-settings {display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:9px;margin:16px 0;}
+.codexpp-option {display:flex;align-items:center;gap:9px;padding:11px;border:1px solid #dce4eb;border-radius:9px;font-size:13px;min-width:0;}
+.codexpp-option input {width:16px;height:16px;margin:0;accent-color:#365b75;flex:none;}
+.codexpp-panel .enhancement-actions {display:flex;flex-wrap:wrap;gap:8px;margin:12px 0;}
+#codexpp-history {white-space:pre-line;overflow-wrap:anywhere;font-size:12px;}
+@media(max-width:520px){.codexpp-settings{grid-template-columns:1fr;}}

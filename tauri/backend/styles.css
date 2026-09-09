@@ -947,7 +947,7 @@ dialog { max-height:calc(100dvh - 32px); overflow:auto; }
  .window-controls { gap:4px; padding-left:8px; }
  .header-links button { font-size:10px; }
 }
-:root[data-platform="darwin"] :is(#codex-installer-panel,#uninstall-view,#image-mcp-entry,[data-page-link="enhance"],[data-extension-tab="plugins"],#manager-update-check,#manager-update-auto) {display:none!important}
+:root[data-platform="darwin"] :is(#codex-installer-panel,#uninstall-view,#image-mcp-entry,[data-extension-tab="plugins"],#manager-update-check,#manager-update-auto) {display:none!important}
 :root[data-platform="darwin"] .mac-notice {padding:16px;margin-bottom:16px;border:1px solid #c5d5e5;border-radius:14px;background:#edf3f9;color:#233e58;line-height:1.6;overflow-wrap:anywhere}
 :root[data-platform="darwin"] .mac-notice a{color:#284d72;text-decoration:underline}
 .mac-action-grid{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}

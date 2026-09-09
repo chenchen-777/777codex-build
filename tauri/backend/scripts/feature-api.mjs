@@ -5,6 +5,7 @@ import { SkillManager } from "../js/skill-manager.mjs";
 import { PluginManager, CodexRpc, locateCodexCore } from "../js/plugin-manager.mjs";
 import { EnhancementManager } from "../js/enhancement-manager.mjs";
 import { PluginRepairManager } from "../js/plugin-repair-manager.mjs";
+import { CodexppManager } from "../js/codexpp-manager.mjs";
 import { requireConfirmation, ensure } from "../js/errors.mjs";
 
 export function createFeatureApi({ codexRoot, managerRoot, userSkillRoot, componentArchive, pluginRepairArchive, audit, adapters, status, readBody, sendJson }) {
@@ -14,6 +15,8 @@ export function createFeatureApi({ codexRoot, managerRoot, userSkillRoot, compon
   const plugins = new PluginManager(config, async () => new CodexRpc(await locateCodexCore(await status(), process.env, managerRoot), { codexRoot, cwd: managerRoot }));
   const enhancements = new EnhancementManager({ managerRoot, componentArchive, codexStatus: status, openPath: path => adapters().openPath(path) });
   const pluginRepair = new PluginRepairManager({ codexRoot, managerRoot, componentArchive: pluginRepairArchive, codexStatus: status });
+  const codexpp = new CodexppManager({ codexRoot, managerRoot, codexStatus: status });
+  process.once('exit', () => codexpp.dispose());
   return async (request, response, pathname) => {
     if (request.method === "GET") {
       const query = new URL(request.url, "http://127.0.0.1").searchParams;
@@ -30,11 +33,16 @@ export function createFeatureApi({ codexRoot, managerRoot, userSkillRoot, compon
       if (pathname === "/api/extensions/plugins") { sendJson(response, 200, await plugins.list()); return true; }
       if (pathname === "/api/extensions/snapshots") { sendJson(response, 200, { ok: true, snapshots: await config.listBackups(), revision: (await config.read()).revision }); return true; }
       if (pathname === "/api/enhancements") { const result = await enhancements.status(); sendJson(response, 200, { ...result, pluginRepair: await pluginRepair.status() }); return true; }
+      if (pathname === "/api/enhancements/codexpp") { sendJson(response, 200, await codexpp.status()); return true; }
+      if (pathname === "/api/enhancements/codexpp/recoveries") { sendJson(response, 200, await codexpp.recoveries()); return true; }
       if (pathname === "/api/enhancements/codex-zh/recoveries") { sendJson(response, 200, await enhancements.recoveries()); return true; }
       if (pathname === "/api/enhancements/plugin-repair/recoveries") { sendJson(response, 200, await pluginRepair.recoveries()); return true; }
     }
     if (request.method !== "POST") return false;
     const routes = {
+      "/api/enhancements/codexpp/settings": p => codexpp.save(p.settings),
+      "/api/enhancements/codexpp/repair": async p => { requireConfirmation(p.confirm, "REPAIR_PLUGINS"); return codexpp.repair(); },
+      "/api/enhancements/codexpp/launch": async p => { requireConfirmation(p.confirm, "START_CODEXPP"); return codexpp.launch(); },
       "/api/extensions/mcp/save": async p => { requireConfirmation(p.confirm, "SAVE_MCP"); return mcp.save(p); },
       "/api/extensions/mcp/toggle": async p => { requireConfirmation(p.confirm, "TOGGLE_MCP"); return mcp.toggle(p); },
       "/api/extensions/mcp/remove": async p => { requireConfirmation(p.confirm, "REMOVE_MCP"); return mcp.remove(p); },

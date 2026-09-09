@@ -1,0 +1,22 @@
+[package]
+name = "gcc-codexpp-engine"
+version = "0.1.0"
+edition = "2024"
+license = "AGPL-3.0-only"
+
+[[bin]]
+name = "777-codexpp"
+path = "src/main.rs"
+
+[dependencies]
+codex-plus-core = { git = "https://github.com/chenchen-777/CodexPlusPlus", rev = "9cbf0130c23b655727dc5c9f43689c425926618c" }
+codex-plus-data = { git = "https://github.com/chenchen-777/CodexPlusPlus", rev = "9cbf0130c23b655727dc5c9f43689c425926618c" }
+anyhow = "1"
+async-trait = "0.1"
+serde_json = "1"
+tokio = { version = "1", features = ["macros", "rt-multi-thread", "time", "io-util", "io-std"] }
+
+[profile.release]
+opt-level = "s"
+strip = true
+
