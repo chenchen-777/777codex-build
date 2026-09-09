@@ -1,7 +1,8 @@
-// CI-only native integration in a new temporary home. Never launch official apps or read user Keys.
+// CI-only integration on a disposable runner. Never log in or read user Keys.
 import {mkdtemp,realpath,access,readFile,writeFile,mkdir} from 'node:fs/promises';
 import {tmpdir} from 'node:os';import {join} from 'node:path';import {createHash} from 'node:crypto';
 import {MacManager} from '../backend/js/mac-manager.mjs';
+import {macCodexStatus,stopMacCodex} from '../backend/js/macos-runtime.mjs';
 if(process.platform!=='darwin'||process.env.CI!=='true')throw Error('Only run on an isolated macOS CI runner');
 const root=await realpath(await mkdtemp(join(tmpdir(),'777-official-acceptance-'))),home=join(root,'home'),target=join(home,'Applications','Codex.app');
 const manager=new MacManager({managerRoot:join(root,'manager'),home,isolated:false,backup:async()=>({fake:true})});
@@ -13,6 +14,16 @@ try{
  await manager.install();result.install=true;
  const original=join(target,'Contents','Resources','app.asar'),hash=async p=>createHash('sha256').update(await readFile(p)).digest('hex'),before=await hash(original);
  await manager.localize();result.chineseCopy=true;if(before!==await hash(original))throw Error('Official ASAR changed');
+ // Exercise LaunchServices, not just codesign verification. This launches only
+ // our newly built private copy on the disposable CI runner, without an account.
+ try{
+  await manager.launchZh();result.chineseLaunchServices=true;
+  await new Promise(r=>setTimeout(r,5000));
+  if(!(await macCodexStatus({CODEX_DESKTOP_PATH:manager.zh})).running)throw Error('Chinese copy exited after launch');
+  result.chineseProcessStable=true;
+ }finally{
+  await stopMacCodex({CODEX_DESKTOP_PATH:manager.zh});
+ }
  await manager.removeZh();result.chineseRemoval=true;
  await manager.install();result.update=true;
  // Alter only our temporary CI app, then prove install trust checks still reject

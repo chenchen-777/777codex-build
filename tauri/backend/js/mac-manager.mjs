@@ -15,8 +15,9 @@ const ids=new Set(['com.openai.codex','com.openai.chat','com.openai.chatgpt']);
 export async function digestFile(path){const h=createHash('sha256');for await(const b of createReadStream(path))h.update(b);return h.digest('hex');}
 export function assertMacUrl(url){const u=new URL(url);ensure(u.protocol==='https:'&&u.hostname==='persistent.oaistatic.com'&&!u.username&&!u.password&&!u.search&&!u.hash&&u.pathname.startsWith('/codex-app-prod/'),'官方安装包地址不可信','MAC_SOURCE_INVALID',409);return u.href;}
 export class MacManager{
-  constructor({managerRoot,isolated=true,environment=process.env,platform=process.platform,arch=process.arch,home=homedir(),run=exec,fetcher=fetch,backup=async()=>null,audit}={}){
+  constructor({managerRoot,isolated=true,environment=process.env,platform=process.platform,arch=process.arch,home=homedir(),run=exec,fetcher=fetch,backup=async()=>null,audit,wait=ms=>new Promise(r=>setTimeout(r,ms))}={}){
     Object.assign(this,{isolated,environment,platform,arch,home,run,fetcher,backup,audit});
+    this.wait=wait;
     this.root=join(managerRoot,'MacComponents');this.file=join(this.root,'state.json');this.dmg=join(this.root,'Codex.dmg');
     this.zh=join(home,'Applications','777 Codex 中文.app');this.state={phase:'idle',message:'请先检查版本或下载官方安装包',events:[]};this.worker=null;this.loaded=false;
   }
@@ -132,8 +133,14 @@ export class MacManager{
     await this.command('/usr/bin/plutil',['-replace','ElectronAsarIntegrity','-json',JSON.stringify({'Resources/app.asar':{algorithm:'SHA256',hash:patched.headerHash}}),plist]);
     await this.command('/usr/bin/plutil',['-replace','CFBundleDisplayName','-string','777 Codex 中文',plist]);
     await this.report('localizing','正在为独立中文副本建立本地签名；它不是 Apple 公证应用');
-    await this.command('/usr/bin/codesign',['--force','--deep','--preserve-metadata=entitlements,flags,runtime','--sign','-',stage],5*60*1000);
+    // Match the standalone release-kit: re-sign the private copy locally, not
+    // with the original publisher's restricted entitlements/runtime metadata.
+    // Do not remove quarantine attributes or change system security settings.
+    await this.command('/usr/bin/codesign',['--force','--deep','--sign','-',stage],5*60*1000);
     await this.command('/usr/bin/codesign',['--verify','--deep','--strict',stage],120000);
+    const signature=await this.command('/usr/bin/codesign',['--display','--entitlements','-',stage]);
+    const entitlementText=String(signature.stdout||'')+String(signature.stderr||'');
+    ensure(!/<key>\s*(?:keychain-access-groups|com\.apple\.application-identifier|com\.apple\.developer\.[^<]+)\s*<\/key>/.test(entitlementText),'中文副本仍携带原开发者的身份或受限权限，已停止替换；原版和已有中文版保留','MAC_ZH_ENTITLEMENTS',409);
     await this.swap(stage,this.zh);this.state.zhVersion=current.version;
     await this.report('complete','中文副本已构建，请点击“启动中文版”，在应用语言设置选择简体中文。首次打开可能需要系统安全确认');
   }
@@ -142,7 +149,24 @@ export class MacManager{
     const current=await this.selected(),zh=await this.bundle(this.zh,{official:false});
     ensure(current.version===zh.version,'官方版本已更新，请重新构建中文副本','MAC_ZH_STALE',409);
     ensure(!current.running,'请先退出官方 Codex，避免两个副本同时打开','MAC_APP_RUNNING',409);
-    await this.command('/usr/bin/open',['-a',this.zh,'--args','--lang=zh-CN']);await this.report('complete','已请求系统打开中文版；若被拦截，请使用“打开安全设置”确认');
+    await this.command('/usr/bin/codesign',['--verify','--deep','--strict',this.zh],120000);
+    await this.report('launching','正在启动中文版并检查进程');
+    try{await this.run('/usr/bin/open',['-a',this.zh,'--args','--lang=zh-CN'],{timeout:30000,maxBuffer:1024*1024});}
+    catch(error){
+      // Only expose known error identifiers, never arbitrary command output
+      // (which can contain paths, account information or credentials).
+      const detail=String(error.stderr||'')+String(error.message||'');
+      if(/Launchd job spawn failed|NSPOSIXErrorDomain Code=163/.test(detail))throw new AppError('中文版启动失败：系统无法创建应用进程（Launchd / 163）。请先重新构建中文版；这不等同于需要在安全设置点击允许','MAC_ZH_SPAWN_FAILED',409);
+      throw new AppError('系统未能打开中文版。请重新构建并重试；只有系统明确提示安全拦截时才需要前往隐私与安全性','MAC_ZH_OPEN_FAILED',409);
+    }
+    let consecutive=0;
+    for(let i=0;i<20;i++){
+      await this.wait(500);
+      const status=await macCodexStatus({CODEX_DESKTOP_PATH:this.zh},{run:this.run,home:this.home});
+      consecutive=status.installDirectory===this.zh&&status.running?consecutive+1:0;
+      if(consecutive>=3){await this.report('complete','已检测到中文版进程持续运行；请在窗口中确认界面与对话正常');return;}
+    }
+    throw new AppError('已发送启动请求，但未检测到中文版持续运行。请重新构建中文版；若仍失败，需要检查启动日志，不能视为启动成功','MAC_ZH_NOT_RUNNING',409);
   }
   async removeZh(){await this.writableApp(this.zh);ensure(await exists(this.zh),'没有中文副本','MAC_ZH_MISSING',404);const s=await macCodexStatus({CODEX_DESKTOP_PATH:this.zh},{run:this.run,home:this.home});ensure(!s.running,'请先退出中文副本','MAC_APP_RUNNING',409);const recovery=join(dirname(this.zh),`.777-zh-removed-${randomUUID()}.app`);await rename(this.zh,recovery);this.state.recoveryPath=recovery;await this.report('complete','中文副本已移除，官方应用和用户数据保留');}
 }

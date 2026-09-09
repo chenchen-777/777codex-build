@@ -80,7 +80,7 @@ fn main(){
             base.join("Window")
         }else{backend_root.join(".window-data")};
         let window=WebviewWindowBuilder::new(app,"main",WebviewUrl::External(parsed))
-            .title("777 Codex · Tauri 迁移候选").inner_size(390.0,620.0).min_inner_size(360.0,520.0)
+            .title("GCC CodeX 管理工具 · Tauri 迁移候选").inner_size(390.0,620.0).min_inner_size(360.0,520.0)
             .decorations(false).transparent(true).shadow(false).resizable(true).center()
             .data_directory(window_data)
             .on_page_load(move|window,payload|{
@@ -106,5 +106,5 @@ fn main(){
         });
         Ok(())
     }).build(tauri::generate_context!());
-    match result{Ok(app)=>app.run(|handle,event|{if let tauri::RunEvent::Exit=event{if let Some(state)=handle.try_state::<Backend>(){if let Ok(mut child)=state.child.lock(){let _=child.kill();let _=child.wait();}}}}),Err(_)=>{rfd::MessageDialog::new().set_title("777 Codex 启动失败").set_description(if cfg!(target_os="macos"){ "管理工具无法启动，请将完整应用移到 Applications 后重试。原版配置未修改。" }else{ "管理工具无法启动。请检查 WebView2 及便携包是否完整；原版配置未修改。" }).show();}}
+    match result{Ok(app)=>app.run(|handle,event|{if let tauri::RunEvent::Exit=event{if let Some(state)=handle.try_state::<Backend>(){if let Ok(mut child)=state.child.lock(){let _=child.kill();let _=child.wait();}}}}),Err(_)=>{rfd::MessageDialog::new().set_title("GCC CodeX 管理工具 启动失败").set_description(if cfg!(target_os="macos"){ "管理工具无法启动，请将完整应用移到 Applications 后重试。原版配置未修改。" }else{ "管理工具无法启动。请检查 WebView2 及便携包是否完整；原版配置未修改。" }).show();}}
 }

@@ -16,17 +16,19 @@ async function fixture(t,arch='arm64'){
  const root=await realpath(await mkdtemp(join(tmpdir(),'777-mac-fixture-')));t.after(()=>rm(root,{recursive:true,force:true}));
  const home=join(root,'home'),bundle=join(root,'fixture','Codex.app');await mkdir(join(bundle,'Contents','MacOS'),{recursive:true});await mkdir(join(bundle,'Contents','Resources'));
  await writeFile(join(bundle,'Contents','Info.plist'),'FAKE_PLIST');await writeFile(join(bundle,'Contents','MacOS','Codex'),'FAKE_EXECUTABLE');await writeFile(join(bundle,'Contents','Resources','app.asar'),asar());
- const calls=[],state={arch:'arm64',running:false,signatureFails:false,id:'com.openai.codex'};let backups=0;
+ const calls=[],state={arch:'arm64',running:false,signatureFails:false,id:'com.openai.codex',zhRunning:false,openStarts:true,entitlements:''};let backups=0;
  const run=async(command,args)=>{
   calls.push([command,args]);
   if(command.endsWith('plutil'))return {stdout:args[0]==='-extract'?({CFBundleIdentifier:state.id,CFBundleExecutable:'Codex',CFBundleShortVersionString:'26.9',LSMinimumSystemVersion:'12.0'}[args[1]]||''):''};
   if(command.endsWith('lipo'))return {stdout:state.arch};if(command.endsWith('sw_vers'))return {stdout:'15.0'};
-  if(command.endsWith('ps'))return {stdout:state.running?`123 ${join(home,'Applications','Codex.app','Contents','MacOS','Codex')}`:''};
+  if(command.endsWith('ps'))return {stdout:[state.running?`123 ${join(home,'Applications','Codex.app','Contents','MacOS','Codex')}`:'',state.zhRunning?`124 ${join(home,'Applications','777 Codex 中文.app','Contents','MacOS','Codex')}`:''].join('\n')};
+  if(command.endsWith('open')&&args.includes('-a')){if(state.openError)throw state.openError;state.zhRunning=state.openStarts;}
+  if(command.endsWith('codesign')&&args.includes('--display'))return {stdout:state.entitlements};
   if((command.endsWith('spctl')||command.endsWith('codesign'))&&state.signatureFails)throw Error('signature failed');
   if(command.endsWith('hdiutil')&&args[0]==='attach')await cp(bundle,join(args[args.indexOf('-mountpoint')+1],'Codex.app'),{recursive:true});
   if(command.endsWith('ditto'))await cp(args[0],args[1],{recursive:true});return {stdout:''};
  };
- const manager=new MacManager({managerRoot:join(root,'manager'),platform:'darwin',isolated:false,home,arch,run,fetcher:async()=>new Response('FAKE_DMG'),backup:async()=>{backups++;}});
+ const manager=new MacManager({managerRoot:join(root,'manager'),platform:'darwin',isolated:false,home,arch,run,wait:async()=>{},fetcher:async()=>new Response('FAKE_DMG'),backup:async()=>{backups++;}});
  return {manager,root,home,calls,state,backups:()=>backups};
 }
 async function act(m,action){await m.start(action);await m.worker;return m.status();}
@@ -48,8 +50,30 @@ test('Chinese copy is independent, verifies local signature, preserves official 
  const f=await fixture(t),m=f.manager;await act(m,'download');await act(m,'install');
  const original=join(f.home,'Applications','Codex.app','Contents','Resources','app.asar'),before=await readFile(original);
  assert.equal((await act(m,'zh-install')).phase,'complete');assert.deepEqual(await readFile(original),before);assert.notDeepEqual(await readFile(join(m.zh,'Contents','Resources','app.asar')),before);
- await act(m,'zh-launch');assert.ok(f.calls.some(([c,a])=>c.endsWith('open')&&a.includes(m.zh)));
+ assert.equal((await act(m,'zh-launch')).phase,'complete');assert.ok(f.calls.some(([c,a])=>c.endsWith('open')&&a.includes(m.zh)));f.state.zhRunning=false;
  assert.equal((await act(m,'zh-remove')).phase,'complete');await access(original);await assert.rejects(access(m.zh));
+});
+
+test('Chinese signing matches standalone kit without metadata inheritance or security bypass',async t=>{
+ const f=await fixture(t),m=f.manager;await act(m,'download');await act(m,'install');
+ assert.equal((await act(m,'zh-install')).phase,'complete');
+ const signing=f.calls.find(([c,a])=>c.endsWith('codesign')&&a.includes('--sign'));
+ assert.deepEqual(signing[1].slice(0,-1),['--force','--deep','--sign','-']);
+ assert.equal(f.calls.some(([c,a])=>c.endsWith('xattr')||a.some(v=>String(v).includes('preserve-metadata'))),false);
+ const before=await readFile(join(m.zh,'Contents','Resources','app.asar'));
+ f.state.entitlements='<plist><dict><key>keychain-access-groups</key><array><string>ORIGINAL_TEAM.shared</string></array></dict></plist>';
+ assert.match((await act(m,'zh-install')).message,/受限权限/);
+ assert.deepEqual(await readFile(join(m.zh,'Contents','Resources','app.asar')),before);
+});
+
+test('Chinese launch rejects spawn errors and absent processes instead of claiming success',async t=>{
+ const f=await fixture(t),m=f.manager;await act(m,'download');await act(m,'install');await act(m,'zh-install');
+ f.state.openError=Object.assign(new Error('open failed'),{stderr:'NSPOSIXErrorDomain Code=163 Launchd job spawn failed PRIVATE_ACCOUNT_DATA'});
+ const failed=await act(m,'zh-launch');assert.equal(failed.phase,'error');assert.match(failed.message,/163/);assert.doesNotMatch(failed.message,/PRIVATE_ACCOUNT_DATA/);
+ f.state.openError=null;f.state.openStarts=false;
+ assert.match((await act(m,'zh-launch')).message,/未检测到/);
+ f.state.openStarts=true;
+ assert.match((await act(m,'zh-launch')).message,/持续运行/);
 });
 test('isolated mode never invokes commands; security action opens settings only',async t=>{
  const f=await fixture(t),m=f.manager;m.isolated=true;await assert.rejects(m.start('download'),e=>e.code==='ISOLATED_PREVIEW');assert.equal(f.calls.length,0);

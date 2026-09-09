@@ -3,6 +3,8 @@ html,body { background:transparent!important; margin:0!important; padding:0!impo
 body { display:block!important; min-height:100dvh; }
 .app-window { width:100vw!important; height:100dvh!important; min-height:0!important; margin:0!important; border-radius:18px!important; overflow:hidden!important; isolation:isolate; box-shadow:none!important; border:1px solid #ccd7e1!important; }
 .titlebar { user-select:none; }
+.brand > div:last-child { min-width:0; }
+@media(max-width:480px) { .brand-title { font-size:13px; line-height:1.25; white-space:normal; overflow-wrap:normal; } }
 :root[data-maximized="true"] .app-window { border-radius:0!important; }
 .home-key-heading { display:flex; align-items:center; justify-content:space-between; gap:8px; min-width:0; }
 .home-key-heading label { flex:0 0 auto; color:#334155; }
