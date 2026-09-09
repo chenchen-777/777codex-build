@@ -42,6 +42,7 @@ export function createFeatureApi({ codexRoot, managerRoot, userSkillRoot, compon
     const routes = {
       "/api/enhancements/codexpp/settings": p => codexpp.save(p.settings),
       "/api/enhancements/codexpp/repair": async p => { requireConfirmation(p.confirm, "REPAIR_PLUGINS"); return codexpp.repair(); },
+      "/api/enhancements/codexpp/restore": async p => { requireConfirmation(p.confirm, "RESTORE_PLUGIN_REPAIR"); return codexpp.restore(p.id); },
       "/api/enhancements/codexpp/launch": async p => { requireConfirmation(p.confirm, "START_CODEXPP"); return codexpp.launch(); },
       "/api/extensions/mcp/save": async p => { requireConfirmation(p.confirm, "SAVE_MCP"); return mcp.save(p); },
       "/api/extensions/mcp/toggle": async p => { requireConfirmation(p.confirm, "TOGGLE_MCP"); return mcp.toggle(p); },

@@ -3,7 +3,7 @@ import {dirname,join,resolve,parse} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawn} from 'node:child_process';
 import {createServer} from 'node:net';
-import {randomUUID} from 'node:crypto';
+import {randomUUID,createHash} from 'node:crypto';
 import {AppError,ensure} from './errors.mjs';
 
 export const CODEXPP_VERSION='1.2.56-777.4';
@@ -36,6 +36,11 @@ async function noLinks(path,tree=false){
  }
 }
 async function freePort(){return new Promise((resolve,reject)=>{const server=createServer();server.on('error',reject);server.listen(0,'127.0.0.1',()=>{const port=server.address().port;server.close(()=>resolve(port));});});}
+async function fingerprint(path){
+ if(!await exists(path))return null;await noLinks(path);const hash=createHash('sha256');
+ async function walk(current,relative=''){const stat=await lstat(current);ensure(!stat.isSymbolicLink(),'恢复目标包含链接','CODEXPP_UNSAFE_PATH',409);hash.update(relative+'\0');if(stat.isDirectory()){for(const name of (await readdir(current)).sort())await walk(join(current,name),relative+'/'+name);}else hash.update(await readFile(current));}
+ await walk(path);return hash.digest('hex');
+}
 export class CodexppManager {
  constructor({codexRoot,managerRoot,codexStatus,enginePath,spawnProcess=spawn}){
   this.home=resolve(codexRoot);this.root=join(resolve(managerRoot),'CodexPlusPlus');this.codexStatus=codexStatus;this.spawn=spawnProcess;
@@ -43,7 +48,7 @@ export class CodexppManager {
   this.worker=null;this.state={phase:'idle',message:'尚未启用'};
  }
  async settings(){try{return validateCodexppSettings(JSON.parse(await readFile(join(this.root,'settings.json'),'utf8')));}catch(e){if(e.code==='ENOENT')return validateCodexppSettings({});throw new AppError('增强设置无法读取，请检查配置文件','CODEXPP_SETTINGS_INVALID',409);}}
- async save(value){ensure(!this.worker,'请先关闭增强会话，再保存设置','OPERATION_BUSY',409);const settings=validateCodexppSettings(value);await noLinks(this.root);await mkdir(this.root,{recursive:true});await noLinks(join(this.root,'settings.json'));await writeFile(join(this.root,'settings.json'),JSON.stringify(settings,null,2),{mode:0o600});return {ok:true,settings,message:'增强设置已保存，下次增强启动时生效'};}
+ async save(value){ensure(!this.worker,'请先关闭增强会话，再保存设置','OPERATION_BUSY',409);const settings=validateCodexppSettings(value);await noLinks(this.root);await mkdir(this.root,{recursive:true});await noLinks(join(this.root,'settings.json'));const pending=join(this.root,`settings-${randomUUID()}.pending`);await writeFile(pending,JSON.stringify(settings,null,2),{mode:0o600,flag:'wx'});await rename(pending,join(this.root,'settings.json'));return {ok:true,settings,message:'增强设置已保存，下次增强启动时生效'};}
  async call(payload,{runtime=false,onMessage=()=>{}}={}){
   ensure(await exists(this.engine),'安装包缺少 Codex++ 核心，请下载含增强组件的新版管理工具','CODEXPP_COMPONENT_MISSING',409);
   return new Promise((resolve,reject)=>{
@@ -93,7 +98,7 @@ export class CodexppManager {
    if(record.pluginsExisted){await rename(target,join(recovery,'plugins.before'));moved=true;}
    await rename(join(work,'.tmp','plugins-remote'),target);installed=true;registering=true;
    await this.call({action:'register',codexRoot:this.home});
-   record.phase='complete';await writeFile(recordFile,JSON.stringify(record));
+   record.afterConfig=await fingerprint(config);record.afterPlugins=await fingerprint(target);record.phase='complete';await writeFile(recordFile,JSON.stringify(record));
    return {ok:true,message:'插件市场已修复并完成注册，重新启动 Codex 后检查插件列表',recoveryId:id};
   }catch(error){
    if(registering&&await exists(config))await rename(config,join(recovery,'config.failed.toml'));
@@ -104,6 +109,24 @@ export class CodexppManager {
   }
  }
  async recoveries(){const base=join(this.home,'.tmp','gcc-codexpp-recoveries');const entries=await readdir(base,{withFileTypes:true}).catch(e=>{if(e.code==='ENOENT')return [];throw e;});return {ok:true,recoveries:await Promise.all(entries.filter(e=>e.isDirectory()&&!e.isSymbolicLink()&&/^[a-f0-9-]{36}$/.test(e.name)).map(async e=>JSON.parse(await readFile(join(base,e.name,'record.json'),'utf8'))))};}
+ async restore(id){
+  ensure(typeof id==='string'&&/^[a-f0-9-]{36}$/.test(id),'恢复记录无效');await this.closed();
+  const dir=join(this.home,'.tmp','gcc-codexpp-recoveries',id),file=join(dir,'record.json');await noLinks(dir,true);
+  const record=JSON.parse(await readFile(file,'utf8'));ensure(record.id===id&&record.phase==='complete','此记录不可恢复');
+  const config=join(this.home,'config.toml'),target=join(this.home,'.tmp','plugins-remote');
+  ensure(await fingerprint(config)===record.afterConfig&&await fingerprint(target)===record.afterPlugins,'修复后配置或插件已改变，为避免覆盖新 Key 或插件，请先手动核对恢复记录','RECOVERY_CONFLICT',409);
+  if(record.configExisted)await access(join(dir,'config.before.toml'));if(record.pluginsExisted)await access(join(dir,'plugins.before'));
+  let savedConfig=false,savedPlugins=false,restoredConfig=false,restoredPlugins=false;
+  try{
+   await rename(config,join(dir,'config.after.toml'));savedConfig=true;await rename(target,join(dir,'plugins.after'));savedPlugins=true;
+   if(record.configExisted){await cp(join(dir,'config.before.toml'),config,{errorOnExist:true,force:false});restoredConfig=true;}
+   if(record.pluginsExisted){await rename(join(dir,'plugins.before'),target);restoredPlugins=true;}
+   record.phase='restored';await writeFile(file,JSON.stringify(record));return {ok:true,message:'已恢复修复前的配置和插件目录，本次替换的文件也已保留'};
+  }catch(error){
+   if(restoredConfig)await rename(config,join(dir,'config.restore-failed.toml'));if(restoredPlugins)await rename(target,join(dir,'plugins.before'));
+   if(savedConfig)await rename(join(dir,'config.after.toml'),config);if(savedPlugins)await rename(join(dir,'plugins.after'),target);throw error;
+  }
+ }
  async launch(){
   const status=await this.closed();ensure(status.installed&&status.installDirectory,'请先安装兼容的 Codex 客户端','CODEX_MISSING',409);
   const settings=await this.settings();ensure(Object.values(settings).some(Boolean),'请先选择并保存需要的增强功能');

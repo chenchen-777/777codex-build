@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {mkdtemp,mkdir,readFile,writeFile,access} from 'node:fs/promises';
+import {mkdtemp,mkdir,readFile,writeFile,access,symlink} from 'node:fs/promises';
 import {tmpdir} from 'node:os';
 import {join} from 'node:path';
 import {CodexppManager,CODEXPP_VERSION,validateCodexppSettings} from '../js/codexpp-manager.mjs';
@@ -49,6 +49,18 @@ test('failed registration restores both configuration and old plugins',async()=>
 });
 test('external config changes abort before replacing plugins and are not overwritten',async()=>{
  const {manager,home}=await fixture();mockCore(manager,{changeConfig:true});await assert.rejects(manager.repair(),/其他程序/);assert.equal(await readFile(join(home,'config.toml'),'utf8'),'changed externally');
+});
+test('restore returns original plugins/config and retains the displaced version',async()=>{
+ const {manager,home}=await fixture();await mkdir(join(home,'.tmp','plugins-remote'),{recursive:true});await writeFile(join(home,'.tmp','plugins-remote','old.txt'),'old');mockCore(manager);
+ const {recoveryId}=await manager.repair();await manager.restore(recoveryId);
+ assert.match(await readFile(join(home,'config.toml'),'utf8'),/test-model/);assert.equal(await readFile(join(home,'.tmp','plugins-remote','old.txt'),'utf8'),'old');
+ await access(join(home,'.tmp','gcc-codexpp-recoveries',recoveryId,'plugins.after','new.txt'));assert.equal((await manager.recoveries()).recoveries[0].phase,'restored');
+});
+test('restoring never overwrites a Key/config changed after repair',async()=>{
+ const {manager,home}=await fixture();mockCore(manager);const {recoveryId}=await manager.repair();await writeFile(join(home,'config.toml'),'new user config');await assert.rejects(manager.restore(recoveryId),/新 Key/);assert.equal(await readFile(join(home,'config.toml'),'utf8'),'new user config');
+});
+test('junction or symbolic link target is rejected before the core runs',async()=>{
+ const {manager,home,dir}=await fixture();const outside=join(dir,'other-data');await mkdir(outside);await mkdir(join(home,'.tmp'));await symlink(outside,join(home,'.tmp','plugins-remote'),process.platform==='win32'?'junction':'dir');manager.call=()=>assert.fail('must not execute core');await assert.rejects(manager.repair(),/链接/);
 });
 test('real pinned core repairs isolated marketplace, registers it, preserves existing config, and repeats safely',{skip:!process.env.MANAGER777_CODEXPP_TEST_ENGINE},async()=>{
  const {manager,home}=await fixture();assert.equal((await manager.status()).marketplace.needsRepair,true);

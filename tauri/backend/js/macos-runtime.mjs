@@ -45,7 +45,7 @@ export async function stopMacCodex(environment=process.env) {
   throw new AppError('Codex 尚未退出，请保存工作并手动关闭后重试','MAC_CODEX_STILL_RUNNING',409);
 }
 export function macUnavailableRoute(path) {
-  if(['/api/enhancements/codexpp/settings','/api/enhancements/codexpp/repair','/api/enhancements/codexpp/launch'].includes(path))return false;
+  if(['/api/enhancements/codexpp/settings','/api/enhancements/codexpp/repair','/api/enhancements/codexpp/launch','/api/enhancements/codexpp/restore'].includes(path))return false;
   if(path.startsWith('/api/extensions/plugins/'))return true;
   return path.startsWith('/api/codex/installer/')||['/api/codex/download','/api/codex/install','/api/codex/uninstall','/api/codex/run-installer','/api/extensions/image-mcp/install'].includes(path)||path.startsWith('/api/enhancements/')||path.startsWith('/api/manager-update/');
 }

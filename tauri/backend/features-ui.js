@@ -173,7 +173,11 @@
       bind('pp-save','保存中…',async()=>{const result=await post('/api/enhancements/codexpp/settings',{settings:settings()});showToast(result.message);});
       bind('pp-start','连接中…',async()=>{if(!await ask('请先保存对话并关闭 Codex。按当前勾选的设置增强启动？'))return;await post('/api/enhancements/codexpp/settings',{settings:settings()});await post('/api/enhancements/codexpp/launch',{confirm:'START_CODEXPP'});await refreshCodexpp(host);});
       bind('pp-repair','修复中…',async()=>{if(!await ask('请先关闭 Codex。修复插件市场并注册？原配置与目录将保留在恢复记录中。'))return;const result=await post('/api/enhancements/codexpp/repair',{confirm:'REPAIR_PLUGINS'});showToast(result.message);await refreshCodexpp(host);});
-      bind('pp-history','读取中…',async()=>{const result=await api('/api/enhancements/codexpp/recoveries');$('#codexpp-history').textContent=result.recoveries.length?result.recoveries.map(e=>`${new Date(e.time).toLocaleString()} · ${e.phase==='complete'?'修复完成，原文件已保留':'已回滚'} · ${e.id}`).join('\n'):'暂无记录';});
+      bind('pp-history','读取中…',async()=>{
+        const result=await api('/api/enhancements/codexpp/recoveries'),history=$('#codexpp-history');
+        history.innerHTML=result.recoveries.length?result.recoveries.map(e=>`<p>${h(new Date(e.time).toLocaleString())} · ${e.phase==='complete'?'修复完成':e.phase==='restored'?'已恢复':'已回滚'} ${e.phase==='complete'?button('pp-restore','恢复',`data-recovery-id="${h(e.id)}"`):''}</p>`).join(''):'暂无记录';
+        history.querySelectorAll('[data-recovery-id]').forEach(b=>b.addEventListener('click',()=>runButton(b,'恢复中…',async()=>{if(!await ask('恢复到本次修复之前？若配置或插件后来有新改动，将停止恢复，避免覆盖。'))return;const restored=await post('/api/enhancements/codexpp/restore',{id:b.dataset.recoveryId,confirm:'RESTORE_PLUGIN_REPAIR'});showToast(restored.message);await refreshCodexpp(host);})));
+      });
       return r;
     }catch(e){failure(host,e);}
   }
