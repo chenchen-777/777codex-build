@@ -1,7 +1,7 @@
 {
   "name": "777codex-mac-tauri-build",
-  "productName": "777 Codex Tauri",
-  "version": "0.12.0",
+  "productName": "GCC CodeX 管理工具",
+  "version": "1.0.0",
   "private": true,
   "type": "module",
   "description": "777Codex macOS Tauri build source",

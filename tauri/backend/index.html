@@ -3,7 +3,7 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>GCC CodeX 管理工具 · 折叠便携版 mac-tauri-5</title>
+  <title>GCC CodeX 管理工具 · 公测版 1.0</title>
   <link rel="stylesheet" href="./styles.css"><link rel="stylesheet" href="./tauri-window.css"><script src="./tauri-window.js"></script>
 </head>
 <body>
@@ -12,7 +12,7 @@
       <div class="brand">
         <div class="brand-logo"><img src="assets/777codes-logo.png" alt="777codes" width="46" height="46"></div>
         <div>
-          <div class="brand-title">GCC CodeX 管理工具 <span class="review-badge">便携试验版 mac-tauri-5</span></div>
+          <div class="brand-title">GCC CodeX 管理工具 <span class="review-badge">公测版 1.0</span></div>
           <div class="brand-subtitle">让 Codex 更好用</div>
         </div>
       </div>
@@ -39,7 +39,7 @@
           <button class="nav-item" data-page="tools"><span class="nav-icon">▦</span><span>工具箱</span></button>
           <button class="nav-item" data-page="settings"><span class="nav-icon">⚙</span><span>设置</span></button>
         </nav>
-        <div class="version-indicator"><span></span> macOS Tauri</div>
+        <div class="version-indicator"><span></span> 公测版 1.0</div>
       </aside>
 
       <main class="main-content">
@@ -214,7 +214,7 @@
             <div class="setting-row"><div><strong>自动检查管理工具更新</strong><p id="manager-update-status">启动后只检查；发现新版本时由你确认下载和安装。</p></div><button class="switch on" id="manager-update-auto" data-live-setting aria-pressed="true"><span></span></button></div>
             <div class="setting-row"><div><strong>备份与恢复</strong><p>修改配置和卸载前会保留备份。</p></div><button class="button ghost" data-page-link="sessions">查看备份</button></div>
           </section>
-          <section class="panel about-card"><div class="mini-logo"><img src="assets/777codes-logo.png" alt="777codes" width="39" height="39"></div><div><strong>GCC CodeX 管理工具 macOS Tauri 测试版</strong><p>解压后运行，需保留完整程序目录；用户配置仍保存在当前 Windows 用户目录。此试验包尚未签名。</p></div><button class="button ghost" data-page-link="logs">操作日志</button></section>
+          <section class="panel about-card"><div class="mini-logo"><img src="assets/777codes-logo.png" alt="777codes" width="39" height="39"></div><div><strong>GCC CodeX 管理工具 · 公测版 1.0</strong><p>解压后运行，请保留完整程序目录。配置保存在当前用户目录；本版未完成可信发行者签名。</p></div><button class="button ghost" data-page-link="logs">操作日志</button></section>
         </section>
         <section class="page" id="page-logs">
           <section class="page-header"><div><span class="eyebrow">本机记录 · 不上传</span><h1>操作日志</h1><p>记录实际操作及错误编号，不保存 Key、请求正文和脚本内容。界面展示最近 1000 条以内的记录。</p></div><button class="button ghost" id="logs-refresh">刷新</button></section>

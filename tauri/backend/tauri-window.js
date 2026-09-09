@@ -36,11 +36,11 @@
     document.querySelector('.titlebar')?.addEventListener('mousedown',event=>{
       if(event.button===0&&!event.target.closest('button,a,input,select'))void invoke('drag');
     });
-    document.querySelector('.review-badge').textContent='Tauri 迁移候选';
-    document.querySelector('.version-indicator').lastChild.textContent=' Tauri 候选';
+    document.querySelector('.review-badge').textContent='公测版 1.0';
+    document.querySelector('.version-indicator').lastChild.textContent=' 公测版 1.0';
     // Electron update payloads cannot be applied to a Tauri distribution.
     for(const id of ['manager-update-check','manager-update-auto']){
-      const element=document.getElementById(id);if(element){element.disabled=true;element.title='Tauri 更新包通道尚在迁移，不能安装 Electron 更新包';}
+      const element=document.getElementById(id);if(element){element.disabled=true;element.title='管理工具更新请从官网下载；Codex 更新请进入 Codex 管理';}
     }
   });
 })();

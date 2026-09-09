@@ -1,4 +1,4 @@
-name: Build macOS Tauri test packages
+name: Build macOS public beta packages
 on:
   workflow_dispatch:
 permissions:

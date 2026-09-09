@@ -27,15 +27,15 @@ const backend=await import('./server.mjs');
 configureLoginRecovery(backend.accountManager);
 const updateStatus=backend.updateManager.status.bind(backend.updateManager);
 backend.updateManager.status=async()=>({...await updateStatus(),settings:{autoCheck:false},lastCheck:null,ready:null});
-backend.updateManager.check=backend.updateManager.download=backend.updateManager.install=async()=>{throw new Error('Tauri 迁移版不能使用 Electron 更新通道；请下载匹配的版本');};
+backend.updateManager.check=backend.updateManager.download=backend.updateManager.install=async()=>{throw new Error('管理工具暂不支持自动更新，请从官网下载新版本');};
 backend.configureRuntimeAdapters({
   protect:value=>native('protect',String(value)),unprotect:value=>native('unprotect',String(value)),
   openExternal:async value=>{if(isolated)throw new Error('隔离测试不打开外部网页');return native('openUrl',value);},
   openPath:async value=>{if(isolated)throw new Error('隔离测试不打开本机目录');return native('openPath',value);},
   chooseSkillDirectory:async()=>native('chooseDirectory'),
-  importProtocolState:()=>({ok:false,status:'unavailable',message:'Tauri 网页唤起入口尚在迁移；可使用网页登录同步 Key'}),
+  importProtocolState:()=>({ok:false,status:'unavailable',message:'请使用网页登录同步账号 Key'}),
   registerImportProtocol:()=>({ok:false,status:'unavailable'}),
-  scheduleManagerUpdate:async()=>{throw new Error('Tauri 候选版禁止安装 Electron 更新包，请下载对应 Tauri 版本');},
+  scheduleManagerUpdate:async()=>{throw new Error('请从官网下载管理工具新版本，不能使用旧版更新包');},
 });
 const send=value=>process.stdout.write(JSON.stringify(value)+'\n');
 send({kind:'ready',...(await backend.ready),isolated});

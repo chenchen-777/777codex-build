@@ -47,7 +47,9 @@ fn main(){
         let resources=if cfg!(target_os="macos"){app.path().resource_dir()?}else{root.to_path_buf()};
         let backend_root=if cfg!(debug_assertions){std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).parent().unwrap().join("backend")}else{resources.join("backend")};
         let runtime_root=backend_root.parent().unwrap().join("runtime");
-        let isolated=if cfg!(target_os="macos"){std::env::args().any(|v|v=="--isolated")||std::env::var("MANAGER777_ISOLATED").as_deref()==Ok("1")}else{!std::env::args().any(|v|v=="--live")};
+        // Public portable builds open normally on both systems. Explicit isolation
+        // always wins, including when --live was left on an old shortcut.
+        let isolated=std::env::args().any(|v|v=="--isolated")||std::env::var("MANAGER777_ISOLATED").as_deref()==Ok("1");
         let smoke_report=if isolated{std::env::var_os("MANAGER777_SMOKE_REPORT").map(std::path::PathBuf::from).filter(|p|p.is_absolute())}else{None};
         let native=root.join(if cfg!(windows){"777-native.exe"}else{"777-native"});
         let node=runtime_root.join(if cfg!(windows){"node.exe"}else{"node"});
@@ -80,7 +82,7 @@ fn main(){
             base.join("Window")
         }else{backend_root.join(".window-data")};
         let window=WebviewWindowBuilder::new(app,"main",WebviewUrl::External(parsed))
-            .title("GCC CodeX 管理工具 · Tauri 迁移候选").inner_size(390.0,620.0).min_inner_size(360.0,520.0)
+            .title("GCC CodeX 管理工具 · 公测版 1.0").inner_size(390.0,620.0).min_inner_size(360.0,520.0)
             .decorations(false).transparent(true).shadow(false).resizable(true).center()
             .data_directory(window_data)
             .on_page_load(move|window,payload|{
