@@ -1,4 +1,4 @@
-import {access,cp,lstat,mkdir,readFile,readdir,rename,writeFile} from 'node:fs/promises';
+import {access,cp,lstat,mkdir,readFile,readdir,rename,writeFile,realpath} from 'node:fs/promises';
 import {dirname,join,resolve,parse} from 'node:path';
 import {fileURLToPath} from 'node:url';
 import {spawn} from 'node:child_process';
@@ -25,7 +25,17 @@ export function validateCodexppSettings(value){
 }
 const exists=path=>access(path).then(()=>true,()=>false);
 async function noLinks(path,tree=false){
- const absolute=resolve(path);let current=parse(absolute).root;
+ let absolute=resolve(path);
+ // macOS exposes its temporary roots through root-owned system aliases.
+ // Accept only those exact verified aliases, never arbitrary user symlinks.
+ if(process.platform==='darwin')for(const alias of ['/var','/tmp']){
+  if(absolute===alias||absolute.startsWith(alias+'/')){
+   const stat=await lstat(alias),canonical=await realpath(alias);
+   ensure(stat.uid===0&&canonical==='/private'+alias,'系统目录链接异常','CODEXPP_UNSAFE_PATH',409);
+   absolute=canonical+absolute.slice(alias.length);break;
+  }
+ }
+ let current=parse(absolute).root;
  for(const segment of absolute.slice(current.length).split(/[\\/]/).filter(Boolean)){
   current=join(current,segment);const stat=await lstat(current).catch(e=>{if(e.code==='ENOENT')return null;throw e;});
   if(!stat)break;ensure(!stat.isSymbolicLink(),'目标包含链接，请先手动检查','CODEXPP_UNSAFE_PATH',409);
