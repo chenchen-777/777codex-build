@@ -9,7 +9,8 @@
   const color=(node,name)=>getComputedStyle(node)[name];
   const fit=label=>{
     const content=document.querySelector('#content');
-    assert(document.documentElement.scrollWidth<=innerWidth+1&&content.scrollWidth<=content.clientWidth+1,label+' no horizontal overflow');
+    const overflow=[...content.querySelectorAll('*')].filter(n=>n.getBoundingClientRect().right>content.getBoundingClientRect().right+1).slice(0,5).map(n=>n.tagName+'.'+n.className+':'+Math.round(n.getBoundingClientRect().width));
+    assert(document.documentElement.scrollWidth<=innerWidth+1&&content.scrollWidth<=content.clientWidth+1,label+' no horizontal overflow'+(overflow.length?' ['+overflow.join(',')+']':''));
   };
   try {
     const response=await fetch('/api/health');const health=await response.json();
