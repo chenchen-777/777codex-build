@@ -166,7 +166,7 @@ dialog .modal-footer .primary{margin-top:0}
 html,body{background:transparent!important;color-scheme:normal}
 .production-app .focus-section h1{font-size:23px;font-weight:600}
 .production-app .page-head h1,.shell-tool-active .page-header h1{font-size:22px;font-weight:600}
-.production-app #content select{min-height:36px;height:36px;font:400 12px/1.5 "Segoe UI","Microsoft YaHei UI",sans-serif;border:1px solid #ffffff20;border-radius:7px;padding:6px 30px 6px 10px;background-color:#252c34;color:var(--ink);box-shadow:none}
+.production-app #content select{-webkit-appearance:none;appearance:none;min-height:36px;height:36px;font:400 12px/1.5 "Segoe UI","Microsoft YaHei UI",sans-serif;border:1px solid #ffffff20;border-radius:7px;padding:6px 30px 6px 10px;background-color:#252c34;background-image:linear-gradient(45deg,transparent 50%,#a9b5c2 50%),linear-gradient(135deg,#a9b5c2 50%,transparent 50%);background-position:calc(100% - 15px) 50%,calc(100% - 11px) 50%;background-size:4px 4px;background-repeat:no-repeat;color:var(--ink);box-shadow:none}
 .production-app select:focus-visible{outline:2px solid #97bfb4;outline-offset:2px}
 .production-app select option{background:#252c34;color:#e5ebe9;font-size:12px;font-weight:400}
 .home-model-field{display:grid;gap:7px;margin-top:12px}
