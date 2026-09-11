@@ -8,6 +8,8 @@ import {compactImageComponent} from './compact-image-component.mjs';
 const root=fileURLToPath(new URL('../',import.meta.url));
 if(process.platform!=='win32')throw new Error('Windows portable packager only; Mac requires native validation.');
 // Always stage into a fresh directory: never redistribute a previous preview's data.
+const installer=join(root,'backend','components','install-engine','777codex-install-engine.exe');
+if(peImports(await readFile(installer)).some(dll=>/^(vcruntime|msvcp)\d/i.test(dll)))throw new Error('Installation engine requires Visual C++ runtime; rebuild it with static CRT before packaging');
 const output=join(root,'dist',`Windows-公测版-${RELEASE.displayVersion}-${Date.now()}`);
 await mkdir(output,{recursive:true});
 await mkdir(join(output,'helpers'));
@@ -29,7 +31,7 @@ await cp(join(root,'backend'),join(output,'backend'),{recursive:true,filter:path
 }});
 await compactImageComponent(join(root,'backend','components','777codes-image-mcp'),join(output,'backend','components','777codes-image-mcp'));
 await writeFile(join(output,'使用说明.txt'),'1. 将压缩包完整解压到一个文件夹。\r\n2. 双击 777Codex.exe，不要单独移动它。\r\n3. 点击“登录 / 注册账号”，按网页提示完成登录。\r\n4. 回到软件，按照首页提示连接，点击“打开 Codex 客户端，开始聊天”。\r\n');
-await writeFile(join(output,'licenses','内部试验说明.txt'),'仅供指定试验机使用，未经签名，不得公开分发。Tool Doctor 公开分发许可仍待确认。\r\n');
+await writeFile(join(output,'licenses','内部试验说明.txt'),'本包尚未签名，供验证使用，未替换线上下载。Tool Doctor 分发许可由项目所有者确认，保留原作者声明。\r\n');
 const files=[];
 async function inventory(dir){for(const entry of await readdir(dir,{withFileTypes:true})){
  const file=join(dir,entry.name);if(entry.isDirectory()){await inventory(file);continue;}
@@ -39,5 +41,5 @@ async function inventory(dir){for(const entry of await readdir(dir,{withFileType
 await inventory(output);
 if(files.some(f=>/chrome_elf|icudtl|v8_context|LICENSES.chromium|electron\.(exe|asar)/i.test(f.path)))throw new Error('Electron runtime leaked into Tauri bundle');
 const buildId=`win-${RELEASE.version}-${Date.now()}`;
-await writeFile(join(output,'build-manifest.json'),JSON.stringify({framework:'Tauri 2',backend:'Node.js sidecar',version:RELEASE.version,buildId,signed:false,status:RELEASE.channel,defaultMode:'live',publicRedistributable:false,releaseBlockers:['Codex Tool Doctor upstream root LICENSE not confirmed'],bytes:files.reduce((sum,f)=>sum+f.bytes,0),files},null,2));
+await writeFile(join(output,'build-manifest.json'),JSON.stringify({framework:'Tauri 2',backend:'Node.js sidecar',version:RELEASE.version,buildId,signed:false,status:RELEASE.channel,defaultMode:'live',publicRedistributable:false,releaseBlockers:['Unsigned validation candidate; production release not performed'],bytes:files.reduce((sum,f)=>sum+f.bytes,0),files},null,2));
 console.log(JSON.stringify({output,files:files.length,MiB:Number((files.reduce((sum,f)=>sum+f.bytes,0)/1048576).toFixed(2))}));

@@ -92,7 +92,7 @@ export const platformKeySync = new PlatformKeySync({ account: accountManager, ma
 const enginePath = process.versions.electron
   ? join(process.resourcesPath, 'app.asar.unpacked', 'components', 'install-engine', '777codex-install-engine.exe')
   : join(projectRoot, 'components', 'install-engine', '777codex-install-engine.exe');
-export const installManager = new InstallManager({managerRoot, engine:new InstallEngine(enginePath), isolated, installMsix:installCodexMsix, backup:()=>backupSessions(codexRoot,managerRoot), audit});
+export const installManager = new InstallManager({managerRoot, engine:new InstallEngine(enginePath,process.env,{onDiagnostic:d=>audit.record({action:'installer:engine',outcome:'error',code:d.code||'ENGINE_FAILED',engine:d}).catch(()=>{})}), isolated, installMsix:installCodexMsix, backup:()=>backupSessions(codexRoot,managerRoot), audit});
 if (!isolated) process.env.MANAGER777_INSTALL_TARGET_FILE = installManager.targetFile;
 async function launchSelectedCodex() {
   if(process.platform==='darwin')return launchCodex(process.env,await activeImageEnvironment());
@@ -531,7 +531,7 @@ export const server = http.createServer(async (request, response) => {
     }
     const relativePath = rawPath === "/" ? "index.html" : rawPath.replace(/^\/+/, "");
     const safePath = normalize(relativePath);
-    if (!["index.html", "styles.css", "ui.js", "features-ui.js", "account-ui.js", "install-ui.js", "import-ui.js", "mac-ui.js", "tauri-window.js", "tauri-window.css", "tool-ui.js", "tool-ui.css", "inline-models.js", "install-flow.js", normalize("assets/777codes-logo.png")].includes(safePath)) { response.writeHead(404).end("Not found"); return; }
+    if (!["index.html", "styles.css", "ui.js", "features-ui.js", "account-ui.js", "install-ui.js", "import-ui.js", "mac-ui.js", "tauri-window.js", "tauri-window.css", "tool-ui.js", "tool-ui.css", "inline-models.js", "install-flow.js", "log-export.js", normalize("assets/777codes-logo.png")].includes(safePath)) { response.writeHead(404).end("Not found"); return; }
     if (safePath === "index.html") response.setHeader("Set-Cookie", `session777_${activePort}=${sessionToken}; HttpOnly; SameSite=Strict; Path=/`);
     const body = await readFile(join(projectRoot, safePath));
     response.writeHead(200, { "Content-Type": contentTypes[extname(safePath)] || "application/octet-stream", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" });

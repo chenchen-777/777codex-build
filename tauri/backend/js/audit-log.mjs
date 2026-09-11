@@ -24,6 +24,7 @@ export class AuditLog {
       action: redact(event.action || "operation").slice(0, 120),
       outcome: ["success", "error", "started"].includes(event.outcome) ? event.outcome : "success",
       status: Number(event.status || 0), durationMs: Math.max(0, Number(event.durationMs || 0)),
+      ...(event.engine ? { engine: Object.fromEntries(Object.entries(event.engine).filter(([key,value])=>['action','exitCode','signal','timedOut','protocolReceived','resultReceived','runtimeMissing'].includes(key)&&(['boolean','number'].includes(typeof value)||typeof value==='string'&&/^[A-Za-z0-9_-]{1,40}$/.test(value)||value===null))) } : {}),
       code: String(event.code || "").replace(/[^A-Z0-9_]/g, "").slice(0, 60),
     };
     const work = this.queue.then(async () => {

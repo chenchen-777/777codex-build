@@ -1,3 +1,4 @@
+import {commandFailure} from './command-diagnostic.mjs';
 import {access,mkdir,mkdtemp,readFile,writeFile,rename,lstat,realpath,readdir,open,stat} from 'node:fs/promises';
 import {constants,createReadStream} from 'node:fs';
 import {join,dirname,basename,resolve} from 'node:path';
@@ -25,7 +26,7 @@ export class MacManager{
   async save(){await mkdir(this.root,{recursive:true});await writeFile(this.file+'.tmp',JSON.stringify(this.state));await rename(this.file+'.tmp',this.file);}
   async status(){await this.load();return {ok:true,...this.state,busy:!!this.worker,isolated:this.isolated,architecture:this.arch,packagePath:this.dmg,packageExists:await exists(this.dmg),zhInstalled:await exists(join(this.zh,'Contents','Info.plist')),zhPath:this.zh,source:MAC_DOWNLOAD};}
   async report(phase,message){this.state={...this.state,phase,message,events:[...(this.state.events||[]).slice(-29),{at:new Date().toISOString(),message}]};await this.save();}
-  async command(cmd,args,timeout=30000){try{return await this.run(cmd,args,{timeout,maxBuffer:4*1024*1024});}catch{throw new AppError(`${basename(cmd)} 执行未完成，请检查系统提示、权限或组件兼容性`,'MAC_COMMAND_FAILED',409);}}
+  async command(cmd,args,timeout=30000){try{return await this.run(cmd,args,{timeout,maxBuffer:4*1024*1024});}catch(error){const failure=commandFailure(cmd,error);await this.audit?.record({action:'mac:component',outcome:'error',code:failure.code,engine:failure.diagnostics}).catch(()=>{});throw failure;}}
   // Identification is separate from trust/launchability. A damaged signature
   // must not prevent the owner from removing a known, scoped app directory.
   async bundleIdentity(path){
