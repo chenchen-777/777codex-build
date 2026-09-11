@@ -12,6 +12,10 @@ path = "src/main.rs"
 name = "777-native"
 path = "src/native.rs"
 
+[[bin]]
+name = "777-share-launcher"
+path = "src/share-launcher.rs"
+
 [build-dependencies]
 tauri-build = "=2.6.3"
 
@@ -23,7 +27,7 @@ rfd = "0.16"
 url = "2"
 
 [target.'cfg(windows)'.dependencies]
-windows-sys = {version="0.61",features=["Win32_Security_Cryptography","Win32_Foundation","Win32_UI_Shell","Win32_System_Com"]}
+windows-sys = {version="0.61",features=["Win32_Security_Cryptography","Win32_Foundation","Win32_UI_Shell","Win32_System_Com","Win32_Graphics_Gdi","Win32_UI_WindowsAndMessaging"]}
 
 [profile.release]
 opt-level = "s"

@@ -4,25 +4,32 @@ import {fileURLToPath} from 'node:url';
 import {createHash} from 'node:crypto';
 import {peImports} from './pe-imports.mjs';
 import {RELEASE} from './release-info.mjs';
+import {compactImageComponent} from './compact-image-component.mjs';
 const root=fileURLToPath(new URL('../',import.meta.url));
 if(process.platform!=='win32')throw new Error('Windows portable packager only; Mac requires native validation.');
 // Always stage into a fresh directory: never redistribute a previous preview's data.
 const output=join(root,'dist',`Windows-公测版-${RELEASE.displayVersion}-${Date.now()}`);
 await mkdir(output,{recursive:true});
+await mkdir(join(output,'helpers'));
 for(const name of ['777Codex.exe','777-native.exe']){
  const source=join(root,'src-tauri','target','release',name);
  if(peImports(await readFile(source)).some(dll=>/^(vcruntime|msvcp)\d/i.test(dll)))throw new Error('Portable executable requires Visual C++ runtime; rebuild with static CRT: '+name);
- await cp(source,join(output,name));
+ await cp(source,join(output,name==='777Codex.exe'?name:'helpers/'+name));
 }
+await cp(join(root,'src-tauri','target','release','777-share-launcher.exe'),join(output,'helpers','777-share-launcher.exe'));
 await cp(join(root,'runtime'),join(output,'runtime'),{recursive:true});
 const engine=join(root,'codexpp-engine','target','release','777-codexpp.exe');
 if(peImports(await readFile(engine)).some(dll=>/^(vcruntime|msvcp)\d/i.test(dll)))throw new Error('Rebuild Codex++ engine with static CRT before packaging');
-await cp(engine,join(output,'777-codexpp.exe'));
+await cp(engine,join(output,'helpers','777-codexpp.exe'));
 await mkdir(join(output,'licenses'));for(const name of ['LICENSE','NOTICE.md'])await cp(join(root,'codexpp-engine',name),join(output,'licenses','CodexPlusPlus-'+name));
 await cp(join(root,'backend'),join(output,'backend'),{recursive:true,filter:path=>{
  const rel=path.slice(join(root,'backend').length).replaceAll('\\','/');
- return !/^\/(\.dev|\.window-data|test|electron)(\/|$)/.test(rel)&&!rel.endsWith('/package-online.mjs')&&!rel.endsWith('/authenticode.mjs')&&!rel.endsWith('/build-update-artifact.mjs');
+ if(/^\/components\/777codes-image-mcp\/node_modules(\/|$)/.test(rel))return false;
+ return !/^\/(\.dev|\.window-data|test|test-results|electron)(\/|$)/.test(rel)&&!rel.endsWith('/package-online.mjs')&&!rel.endsWith('/authenticode.mjs')&&!rel.endsWith('/build-update-artifact.mjs');
 }});
+await compactImageComponent(join(root,'backend','components','777codes-image-mcp'),join(output,'backend','components','777codes-image-mcp'));
+await writeFile(join(output,'使用说明.txt'),'1. 将压缩包完整解压到一个文件夹。\r\n2. 双击 777Codex.exe，不要单独移动它。\r\n3. 点击“登录 / 注册账号”，按网页提示完成登录。\r\n4. 回到软件，按照首页提示连接，点击“打开 Codex 客户端，开始聊天”。\r\n');
+await writeFile(join(output,'licenses','内部试验说明.txt'),'仅供指定试验机使用，未经签名，不得公开分发。Tool Doctor 公开分发许可仍待确认。\r\n');
 const files=[];
 async function inventory(dir){for(const entry of await readdir(dir,{withFileTypes:true})){
  const file=join(dir,entry.name);if(entry.isDirectory()){await inventory(file);continue;}
@@ -31,6 +38,6 @@ async function inventory(dir){for(const entry of await readdir(dir,{withFileType
 }}
 await inventory(output);
 if(files.some(f=>/chrome_elf|icudtl|v8_context|LICENSES.chromium|electron\.(exe|asar)/i.test(f.path)))throw new Error('Electron runtime leaked into Tauri bundle');
-await writeFile(join(output,'build-manifest.json'),JSON.stringify({framework:'Tauri 2',backend:'Node.js sidecar',version:RELEASE.version,signed:false,status:RELEASE.channel,defaultMode:'live',bytes:files.reduce((sum,f)=>sum+f.bytes,0),files},null,2));
-await writeFile(join(output,'README.txt'),'GCC CodeX 管理工具 · Windows 公测版 1.0\r\n完整解压后，双击 777Codex.exe 即可运行，无需安装管理工具。需要 Windows x64 和系统 WebView2。\r\n网页登录后同步账号 Key；已有 Tauri 版用户数据位置不变。旧 Electron 登录凭证不自动迁入。\r\n已同步模型/余额错误提示、插件修复与恢复、Codex++ 增强开关。\r\n请保留完整目录；不要单独移动 exe。请从官网下载管理工具新版本，不使用旧 Electron 更新包。\r\n本版未签名，可能出现系统安全提示；不是稳定版，也不能保证所有 Codex 版本兼容。\r\n开发验收可用 --isolated 参数，不会进行真实安装或账号操作。\r\n');
+const buildId=`win-${RELEASE.version}-${Date.now()}`;
+await writeFile(join(output,'build-manifest.json'),JSON.stringify({framework:'Tauri 2',backend:'Node.js sidecar',version:RELEASE.version,buildId,signed:false,status:RELEASE.channel,defaultMode:'live',publicRedistributable:false,releaseBlockers:['Codex Tool Doctor upstream root LICENSE not confirmed'],bytes:files.reduce((sum,f)=>sum+f.bytes,0),files},null,2));
 console.log(JSON.stringify({output,files:files.length,MiB:Number((files.reduce((sum,f)=>sum+f.bytes,0)/1048576).toFixed(2))}));

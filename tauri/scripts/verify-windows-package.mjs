@@ -15,7 +15,7 @@ for(const entry of manifest.files){
  assert.doesNotMatch(entry.path,/(?:^|\/)(?:\.dev|\.window-data|providers\.json|auth\.json)(?:\/|$)/);
 }
 const state=await mkdtemp(join(tmpdir(),'777-public-beta-smoke-'));
-const native=join(root,'777-native.exe');
+const native=join(root,'helpers','777-native.exe');
 const invoke=(op,value)=>{const r=spawnSync(native,[],{input:JSON.stringify({op,value}),encoding:'utf8',windowsHide:true,timeout:15000});assert.equal(r.status,0);return JSON.parse(r.stdout);};
 const encrypted=invoke('protect','synthetic-public-beta-only');assert.equal(encrypted.ok,true);
 assert.equal(invoke('unprotect',encrypted.value).value,'synthetic-public-beta-only');

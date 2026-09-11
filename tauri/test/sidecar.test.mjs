@@ -17,8 +17,8 @@ test('sidecar uses a random local port, preserves sessions and refuses real inst
  const ready=await receive(r=>r.kind==='ready');
  assert.equal(ready.isolated,true);assert.match(ready.url,/^http:\/\/127\.0\.0\.1:\d+$/);
  const page=await fetch(ready.url);const cookie=page.headers.get('set-cookie').split(';')[0];
- assert.match(await page.text(),/tauri-window\.css/);
- const css=await fetch(ready.url+'/tauri-window.css');assert.equal(css.status,200);assert.match(await css.text(),/border-radius:18px!important/);
+ assert.match(await page.text(),/tool-ui\.css/);
+ const css=await fetch(ready.url+'/tool-ui.css');assert.equal(css.status,200);assert.match(await css.text(),/\.bottom-nav/);
  assert.equal((await fetch(ready.url+'/api/providers')).status,403);
  assert.equal((await fetch(ready.url+'/api/providers',{headers:{cookie}})).status,200);
  const blocked=await fetch(ready.url+'/api/codex/install',{method:'POST',headers:{cookie,origin:ready.url,'Content-Type':'application/json'},body:'{}'});

@@ -1,6 +1,6 @@
 import http from "node:http";
 import { randomBytes, randomUUID } from "node:crypto";
-import { access, readFile, readdir } from "node:fs/promises";
+import { access, readFile, readdir, rename, writeFile } from "node:fs/promises";
 import { dirname, extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import { merge777Config } from "../js/config-core.mjs";
@@ -23,6 +23,7 @@ import { errorMessage, normalizeModels, normalizeUsage, redactSensitiveToml } fr
 import { AuditLog, redact } from "../js/audit-log.mjs";
 import { AppError } from "../js/errors.mjs";
 import { createFeatureApi } from "./feature-api.mjs";
+import { createWindowsApi } from "./windows-api.mjs";
 import { syncModels, syncUsage, validateTextProfile } from '../js/model-service.mjs';
 import { CCSLinkImport } from '../js/ccs-link-import.mjs';
 import { ModelFollow, prepareFollowedModel } from '../js/model-follow.mjs';
@@ -50,8 +51,9 @@ export const audit = new AuditLog(managerRoot);
 export const macManager = new MacManager({managerRoot,isolated,backup:()=>backupSessions(codexRoot,managerRoot),audit});
 const sessionToken = randomBytes(32).toString("hex");
 let busyOperation = null;
+let windowsApi;
 const uninstallTask = new UninstallTask({ audit, execute: report => performUninstall({ installManager, status: codexStatus, backup: () => backupSessions(codexRoot, managerRoot), uninstall: onProgress => uninstallCodex(process.env, { onProgress }) }, report) });
-export const getBusyOperation = () => busyOperation || (macManager.worker ? {action:'Mac 组件任务',startedAt:new Date().toISOString()} : null) || (uninstallTask.state.busy ? { action: 'Codex 卸载', startedAt: uninstallTask.state.startedAt } : null) || (installManager?.worker ? { action: 'Codex 下载或安装', startedAt: new Date().toISOString() } : null);
+export const getBusyOperation = () => busyOperation || windowsApi?.getBusyOperation?.() || (macManager.worker ? {action:'Mac 组件任务',startedAt:new Date().toISOString()} : null) || (uninstallTask.state.busy ? { action: 'Codex 卸载', startedAt: uninstallTask.state.startedAt } : null) || (installManager?.worker ? { action: 'Codex 下载或安装', startedAt: new Date().toISOString() } : null);
 const startedAt = Date.now();
 const contentTypes = {
   ".html": "text/html; charset=utf-8", ".css": "text/css; charset=utf-8",
@@ -260,6 +262,7 @@ async function handleApi(request, response, pathname) {
   if (pathname.startsWith('/api/account/') && request.method === 'POST') {
     requireTrusted(request); const body = await readJsonBody(request); let result;
     if (pathname === '/api/account/login/start') result = await accountManager.startLogin(body.deviceName || process.env.COMPUTERNAME || 'Windows 设备');
+    else if (pathname === '/api/account/register/start') result = await accountManager.startRegistration();
     else if (pathname === '/api/account/login/poll') result = await accountManager.pollLogin();
     else if (pathname === '/api/account/logout') result = await accountManager.logout();
     else if (pathname === '/api/account/referral/open') result = await accountManager.openReferral();
@@ -289,7 +292,7 @@ async function handleApi(request, response, pathname) {
   }
   if (pathname === '/api/model/sync' && request.method === 'POST') {
     requireTrusted(request); await readJsonBody(request);
-    if (busyOperation || uninstallTask.state.busy) throw new AppError('配置操作正在执行，稍后同步模型', 'OPERATION_BUSY', 409);
+    if (busyOperation || windowsApi?.getBusyOperation?.() || uninstallTask.state.busy) throw new AppError('配置操作正在执行，稍后同步模型', 'OPERATION_BUSY', 409);
     if (!modelRefresh) modelRefresh = modelFollow.refresh().finally(() => { modelRefresh = null; });
     sendJson(response, 200, await modelRefresh); return true;
   }
@@ -338,6 +341,18 @@ async function handleApi(request, response, pathname) {
   if (request.method === "POST" && pathname === "/api/providers/import-current") {
     requireTrusted(request); await bootstrapCurrentProvider(); sendJson(response, 200, { ok: true, providers: await listProviders(managerRoot) }); return true;
   }
+  if (request.method === "POST" && pathname === "/api/providers/model-choice") {
+    requireTrusted(request);const payload=await readJsonBody(request);
+    const before=(await listProviders(managerRoot)).find(p=>p.id===payload.id);
+    if(!before||before.updatedAt!==payload.expectedUpdatedAt)throw new AppError('密钥已变更，请刷新模型后重试','PROVIDER_CONFLICT',409);
+    const profile=await profileFromInput({id:before.id,model:String(payload.model||'')});
+    const result=await syncModels(profile);
+    if(!result.models.includes(profile.model))throw new AppError('此密钥不支持所选模型','MODEL_NOT_SUPPORTED',400);
+    const current=(await listProviders(managerRoot)).find(p=>p.id===before.id);
+    if(current?.updatedAt!==before.updatedAt)throw new AppError('密钥已变更，请刷新模型后重试','PROVIDER_CONFLICT',409);
+    const saved=await upsertProvider(managerRoot,profile,adapters.protect);
+    sendJson(response,200,{ok:true,provider:saved,appliesOnNextLaunch:true});return true;
+  }
   if (request.method === "POST" && pathname === "/api/providers/save") {
     requireTrusted(request); const payload = await readJsonBody(request);
     const profile = await profileFromInput(payload);
@@ -366,6 +381,29 @@ async function handleApi(request, response, pathname) {
   if (request.method === 'POST' && pathname === '/api/providers/usage') {
     requireTrusted(request);
     sendJson(response, 200, await syncUsage(await profileFromInput(await readJsonBody(request)))); return true;
+  }
+  if (request.method === "POST" && pathname === "/api/providers/switch") {
+    requireTrusted(request); const payload = await readJsonBody(request);
+    if (payload.confirm !== 'SWITCH_PROVIDER') throw new AppError('请确认切换 Key','CONFIRMATION_REQUIRED',400);
+    const before = (await listProviders(managerRoot)).find(p => p.id === String(payload.id));
+    if (!before || before.updatedAt !== payload.expectedUpdatedAt) throw new AppError('Key 配置已在其他操作中变化，请刷新后重试','PROVIDER_CONFLICT',409);
+    const storePath=join(managerRoot,'providers.json'), snapshot=await readFile(storePath); let applied=null,saved=null,selfSnapshot=null;
+    try {
+      const profile=await profileFromInput(payload);Object.assign(profile,normalizeDescriptor(profile));requireProviderAdapter(profile);const verified=await verifySecret(profile);validateTextProfile(profile,verified.models);
+      if(!verified.ok)throw Object.assign(new Error('切换前验证失败：'+verified.message),{status:401});
+      saved=await upsertProvider(managerRoot,profile,adapters.protect);selfSnapshot=await readFile(storePath);await markProviderVerified(managerRoot,saved.id);selfSnapshot=await readFile(storePath);
+      applied=await apply777Configuration({codexRoot,apiKey:profile.apiKey,options:{model:profile.model,reasoningEffort:profile.reasoningEffort,disableResponseStorage:profile.disableResponseStorage,removeXiaojiMarketplace:true}});
+      await markProviderActive(managerRoot,profile.id,'text');await markProviderVerified(managerRoot,profile.id);
+      selfSnapshot=await readFile(storePath);
+      sendJson(response,200,{ok:true,selected:{id:profile.id,name:profile.name},applied,verification:verified});return true;
+    } catch(error) {
+      if(applied?.backupId){try{await rollback777Configuration({codexRoot,backupId:applied.backupId});}catch(rollbackError){throw new AppError('切换失败，且 Codex 配置回滚失败：'+errorMessage(rollbackError),'PROVIDER_CONFIG_ROLLBACK_FAILED',500);}}
+      const currentBytes=await readFile(storePath);
+      const unchangedByOthers=!selfSnapshot||currentBytes.equals(selfSnapshot);
+      if(snapshot&&(!saved||unchangedByOthers)){const temporary=storePath+'.switch-rollback';await writeFile(temporary,snapshot);await rename(temporary,storePath);}
+      else if(saved)throw new AppError('切换失败且 Key 列表又被修改，已保留新修改；请刷新检查 Codex 配置','PROVIDER_ROLLBACK_CONFLICT',409);
+      throw error;
+    }
   }
   if (request.method === "POST" && pathname === "/api/providers/activate") {
     requireTrusted(request); const payload = await readJsonBody(request);
@@ -459,6 +497,7 @@ const pluginRepairArchive = process.env.CODEX_PLUGIN_REPAIR_ARCHIVE || (process.
   ? join(process.resourcesPath, "app.asar.unpacked", "components", "plugin-repair", "plugins-main.zip")
   : join(projectRoot, "components", "plugin-repair", "plugins-main.zip"));
 const featureApi = createFeatureApi({ codexRoot, managerRoot, userSkillRoot, componentArchive: codexZhArchive, pluginRepairArchive, audit, adapters: () => adapters, status: codexStatus, readBody: readJsonBody, sendJson });
+windowsApi = createWindowsApi({ projectRoot, codexRoot, managerRoot, isolated, audit, readBody: readJsonBody, sendJson, requireTrusted, accountManager, adapters: () => adapters });
 
 export const server = http.createServer(async (request, response) => {
   const requestId = randomUUID(); const start = Date.now(); let action = "request"; let mutation = false; let ownsBusy = false; let code = "";
@@ -481,18 +520,18 @@ export const server = http.createServer(async (request, response) => {
       if (writeRequest) requireTrusted(request);
       if (mutation) {
         if (isolated && (/^\/api\/mac\//.test(rawPath) || /^\/api\/codex\//.test(rawPath) || /^\/api\/enhancements\//.test(rawPath) || rawPath === "/api/extensions/image-mcp/install" || /^\/api\/manager-update\/(download|install)$/.test(rawPath))) throw new AppError("隔离预览禁止启动或安装本机 Codex；请在试验机桌面候选包中操作", "ISOLATED_PREVIEW", 403);
-        if (busyOperation || macManager.worker || uninstallTask.state.busy || (installManager.worker && rawPath !== '/api/codex/installer/control')) throw new AppError("另一个操作正在执行，请稍后重试", "OPERATION_BUSY", 409);
+        if (busyOperation || (windowsApi?.getBusyOperation?.() && !rawPath.endsWith('/cancel')) || macManager.worker || uninstallTask.state.busy || (installManager.worker && rawPath !== '/api/codex/installer/control')) throw new AppError("另一个操作正在执行，请稍后重试", "OPERATION_BUSY", 409);
         busyOperation = { action: rawPath, startedAt: new Date().toISOString(), requestId }; ownsBusy = true;
         await audit.record({ id: requestId, action, outcome: "started" });
       }
       if(process.platform==='darwin'&&request.method==='POST'&&macUnavailableRoute(rawPath))throw new AppError('此功能尚未适配 macOS 测试版；不会运行 Windows 组件。Codex 请从官方页面手动安装或更新。','MAC_FEATURE_UNAVAILABLE',409);
-      const handled = await featureApi(request, response, rawPath) || await handleApi(request, response, rawPath);
+      const handled = await windowsApi(request, response, rawPath) || await featureApi(request, response, rawPath) || await handleApi(request, response, rawPath);
       if (!handled) sendJson(response, 404, { ok: false, message: "API 路径不存在" });
       return;
     }
     const relativePath = rawPath === "/" ? "index.html" : rawPath.replace(/^\/+/, "");
     const safePath = normalize(relativePath);
-    if (!["index.html", "styles.css", "ui.js", "features-ui.js", "account-ui.js", "install-ui.js", "import-ui.js", "mac-ui.js", "tauri-window.js", "tauri-window.css", normalize("assets/777codes-logo.png")].includes(safePath)) { response.writeHead(404).end("Not found"); return; }
+    if (!["index.html", "styles.css", "ui.js", "features-ui.js", "account-ui.js", "install-ui.js", "import-ui.js", "mac-ui.js", "tauri-window.js", "tauri-window.css", "tool-ui.js", "tool-ui.css", "inline-models.js", "install-flow.js", normalize("assets/777codes-logo.png")].includes(safePath)) { response.writeHead(404).end("Not found"); return; }
     if (safePath === "index.html") response.setHeader("Set-Cookie", `session777_${activePort}=${sessionToken}; HttpOnly; SameSite=Strict; Path=/`);
     const body = await readFile(join(projectRoot, safePath));
     response.writeHead(200, { "Content-Type": contentTypes[extname(safePath)] || "application/octet-stream", "Cache-Control": "no-store", "X-Content-Type-Options": "nosniff" });

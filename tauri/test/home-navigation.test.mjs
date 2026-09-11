@@ -13,11 +13,13 @@ test('Key sync is moved once to home with its original handler and status IDs',(
  assert.equal((result.match(/id="platform-key-sync-status"/g)||[]).length,1);
  assert.ok(!result.includes('这次使用的 Key'));
 });
-test('Codex management follows home and no longer highlights or appears inside toolbox',()=>{
+test('three-page shell keeps Codex management reachable from home and toolbox',()=>{
  const result=homeNavigation(html,ui);
- assert.match(result.html,/data-page="home"[\s\S]*?<\/button>\s*<button[^>]*data-page="codex"/);
+ const shell=result.html.slice(result.html.indexOf('id="onboarding-app"'),result.html.indexOf('legacy-app-window'));
+ assert.deepEqual([...shell.matchAll(/data-shell-page="([^"]+)"/g)].map(match=>match[1]),['home','tools','account']);
  const tools=result.html.slice(result.html.indexOf('id="page-tools"'),result.html.indexOf('id="page-providers"'));
- assert.ok(!tools.includes('data-page-link="codex"'));assert.ok(result.html.includes('<h1>Codex 管理</h1>'));
+ assert.ok(tools.includes('data-page-link="codex"'));assert.ok(result.html.includes('<h1>Codex 管理</h1>'));
+ assert.ok(result.html.includes('data-page-link="codex">安装 / 更新'));
  assert.ok(result.ui.includes("['enhance', 'sessions', 'extensions'].includes(pageName)"));
  for(const id of ['codex-launch','codex-restart','codex-download','codex-uninstall'])assert.ok(result.html.includes(`id="${id}"`));
  assert.deepEqual(homeNavigation(result.html,result.ui),result);

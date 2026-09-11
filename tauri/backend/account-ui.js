@@ -16,8 +16,17 @@
   function showLogin() {
     viewRevision++;
     open(); body.innerHTML = `<div class="account-state"><div class="account-identity"><span class="account-avatar">77</span><div><strong>登录 777codes</strong><small>通过浏览器登录并授权此客户端</small></div></div><p>登录后，客户端右上角会显示你的用户名或邮箱，并可生成自己的推广安装链接。</p><div class="modal-note">客户端不会读取或保存平台密码。设备凭证使用 macOS 钥匙串安全存储加密，也不会与模型 API Key 混用。</div><p class="inline-error" id="account-error"></p></div>`;
-    footer.innerHTML = `<button type="button" class="button ghost" data-account-close>取消</button><button type="button" class="button primary" id="account-login-start">网页登录</button>`;
+    footer.innerHTML = `<button type="button" class="button ghost" data-account-close>取消</button><button type="button" class="button ghost" id="account-register-start">注册账号</button><button type="button" class="button primary" id="account-login-start">网页登录</button>`;
     footer.querySelector("[data-account-close]").addEventListener("click", close);
+    $("#account-register-start").addEventListener("click", event => runButton(event.currentTarget, "正在打开…", async () => {
+      const errorNode = $("#account-error");
+      try {
+        const result = await post('/api/account/register/start');
+        errorNode.textContent = ''; showToast(result.message);
+        const note = document.createElement('p'); note.className = 'modal-note'; note.textContent = result.message;
+        body.querySelector('[data-registration-note]')?.remove(); note.dataset.registrationNote = ''; body.append(note);
+      } catch(error) { errorNode.textContent = error.message; }
+    }));
     $("#account-login-start").addEventListener("click", event => runButton(event.currentTarget, "正在打开…", async () => {
       try { status = await post("/api/account/login/start"); setHeader(); showPending(); schedulePoll(status.pollInterval || 3); }
       catch (error) { $("#account-error").textContent = error.message; }
@@ -34,7 +43,7 @@
   async function poll() {
     try {
       status = await post("/api/account/login/poll"); setHeader();
-      if (status.state === "logged-in") { showToast("777codes 平台账号登录成功"); await showAccount(); return; }
+      if (status.state === "logged-in") { showToast("777codes 平台账号登录成功"); close(); if (typeof CustomEvent !== "undefined") window.dispatchEvent(new CustomEvent("manager777:account-changed")); return; }
       schedulePoll(status.pollInterval || 3);
     } catch (error) { const target = $("#account-error"); if (target) target.textContent = error.message; }
   }
@@ -54,7 +63,7 @@
       const button = event.currentTarget;
       if (!await window.manager777.confirm("退出 777codes 平台账号？只清除此客户端的设备登录，不删除 Key 配置。")) return;
       const result = await runButton(button, "退出中…", () => post("/api/account/logout"));
-      if (result) { status = result; setHeader(); close(); showToast("已退出平台账号"); }
+      if (result) { status = result; setHeader(); close(); if (typeof CustomEvent !== "undefined") window.dispatchEvent(new CustomEvent("manager777:account-changed")); showToast("已退出平台账号"); }
     });
     $("#account-referral").addEventListener("click", () => loadReferral());
     if (referral) await loadReferral();

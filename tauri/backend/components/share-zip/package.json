@@ -1,0 +1,10 @@
+{
+  "name": "777codex-share-zip-worker",
+  "private": true,
+  "version": "1.0.0",
+  "type": "module",
+  "dependencies": {
+    "yauzl": "3.2.0",
+    "yazl": "3.3.1"
+  }
+}

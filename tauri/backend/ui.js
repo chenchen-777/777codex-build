@@ -291,13 +291,16 @@
     renderHomeModel();
   });
   $("#home-start-with-key").addEventListener("click", async (event) => {
+    const button = event.currentTarget;
     const id = $("#home-key-select").value;
     if (!id) return showToast("请先添加并选择文字 Key", true);
     if (homeDraft.launching) return;
+    const chosen = state.providers.find(p => p.id === id);
+    if (!await window.manager777.confirm(`切换到 ${chosen?.name || '所选 Key'} 并用于新会话？同步列表不会自动切换；取消不会修改配置。`)) return;
     homeDraft.launching = true;
     homeDraft.revision++;
     renderHomeModel();
-    const button = event.currentTarget;
+
     try {
       // Explicit choices must be saved before applying; provider-store timestamps
       // prevent older session observations from replacing this selection.
@@ -306,8 +309,7 @@
         if (!homeDraft.model || (homeDraft.models && !homeDraft.models.includes(homeDraft.model))) throw new Error('请选择当前 Key 支持的模型');
         const running = (await api('/api/codex/status')).running;
         if (running && !await window.manager777.confirm('Codex 正在运行。应用新模型需要重启，请先结束正在进行的对话。继续？')) return;
-        await api('/api/providers/save', { method: 'POST', body: JSON.stringify({ id, name: profile.name, model: homeDraft.model, reasoningEffort: homeDraft.effort }) });
-        await api('/api/providers/activate', { method: 'POST', body: JSON.stringify({ id }) });
+        await api('/api/providers/switch', { method: 'POST', body: JSON.stringify({ id, name: profile.name, model: homeDraft.model, reasoningEffort: homeDraft.effort, expectedUpdatedAt: profile.updatedAt, confirm: 'SWITCH_PROVIDER' }) });
         homeDraft.dirty = false;
         await api(running ? '/api/codex/restart' : '/api/codex/launch', { method: 'POST', body: '{}' });
         showToast('已应用模型并启动 Codex');

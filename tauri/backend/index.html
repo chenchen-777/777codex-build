@@ -3,11 +3,11 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>GCC CodeX 管理工具 · 公测版 1.0</title>
-  <link rel="stylesheet" href="./styles.css"><link rel="stylesheet" href="./tauri-window.css"><script src="./tauri-window.js"></script>
+  <title>777codes 管理工具</title>
+  <link rel="stylesheet" href="./tool-ui.css"><script src="./tauri-window.js"></script>
 </head>
-<body>
-  <div class="app-window">
+<body><section class="app production-app" id="onboarding-app" aria-label="777codes 管理工具"><header class="titlebar"><div class="brand"><img src="assets/777codes-logo.png" alt="777codes" width="38" height="38"><div><strong>777codes 管理工具</strong><button class="version" id="shell-version" type="button">版本 1.0 · 公测版</button></div></div><div class="window-controls"><button id="shell-expand" aria-label="展开窗口" title="展开窗口"><svg viewBox="0 0 256 256"><polyline points="160 48 208 48 208 96"/><path d="M208 48l-64 64M48 208l64-64"/><polyline points="96 208 48 208 48 160"/></svg></button><button id="shell-minimize" aria-label="最小化窗口" title="最小化窗口"><svg viewBox="0 0 256 256"><path d="M48 128h160"/></svg></button><button id="shell-close" aria-label="关闭窗口" title="关闭窗口"><svg viewBox="0 0 256 256"><path d="M64 64l128 128M192 64L64 192"/></svg></button></div></header><main id="content" tabindex="-1"><div class="skeleton"></div><div class="skeleton"></div></main><nav class="bottom-nav" aria-label="主导航"><button data-shell-page="home" aria-current="page"><svg viewBox="0 0 256 256"><path d="M40 112L128 40l88 72v96H152v-64h-48v64H40Z"/></svg>开始使用</button><button data-shell-page="tools"><svg viewBox="0 0 256 256"><rect x="40" y="72" width="176" height="136" rx="16"/><path d="M88 72V48h80v24M40 128h176M104 128v24h48v-24"/></svg>工具箱</button><button data-shell-page="account"><svg viewBox="0 0 256 256"><circle cx="128" cy="88" r="40"/><path d="M48 216a80 80 0 01160 0"/></svg>我的账号</button></nav></section>
+  <div class="app-window legacy-app-window" hidden>
     <header class="titlebar">
       <div class="brand">
         <div class="brand-logo"><img src="assets/777codes-logo.png" alt="777codes" width="46" height="46"></div>
@@ -33,11 +33,9 @@
     <div class="app-body">
       <aside class="sidebar">
         <nav aria-label="主导航">
-          <button class="nav-item active" data-page="home"><span class="nav-icon">⌂</span><span>首页</span></button>
-          <button class="nav-item" data-page="codex" aria-label="Codex 管理"><span>Codex<br>管理</span></button>
-          <button class="nav-item" data-page="providers"><span class="nav-icon">◇</span><span>我的 Key</span></button>
+          <button class="nav-item active" data-page="home"><span class="nav-icon">①</span><span>开始使用</span></button>
           <button class="nav-item" data-page="tools"><span class="nav-icon">▦</span><span>工具箱</span></button>
-          <button class="nav-item" data-page="settings"><span class="nav-icon">⚙</span><span>设置</span></button>
+          <button class="nav-item" data-page="account"><span class="nav-icon">◎</span><span>我的账号</span></button>
         </nav>
         <div class="version-indicator"><span></span> 公测版 1.0</div>
       </aside>
@@ -53,6 +51,7 @@
             <span class="status-pill" id="runtime-status">检查中</span>
           </section>
 
+          <section class="onboarding-card"><div class="onboarding-steps"><strong>开始使用</strong><span>1 登录账号</span><span>2 连接 GPT</span><span>3 准备客户端</span><span>4 开始聊天</span></div><button class="button primary" id="onboarding-primary">正在判断下一步…</button><small id="onboarding-note" role="status">正在读取真实状态…</small></section>
           <section class="panel home-summary">
             <div class="summary-provider">
               <div class="card-heading">
@@ -102,8 +101,11 @@
           </section>
         </section>
 
-        <section class="page" id="page-tools"><section class="page-header"><div><h1>工具箱</h1><p>选择需要使用的工具。</p></div></section><div class="quick-grid"><button class="quick-entry" data-page-link="extensions"><strong>插件 / MCP / 技能</strong><b>›</b></button><button class="quick-entry" data-page-link="enhance"><strong>Codex++ 与插件修复</strong><b>›</b></button><button class="quick-entry" data-page-link="sessions"><strong>聊天记录</strong><b>›</b></button></div></section>
-        <section class="page" id="page-providers">
+        <section class="page" id="page-tools"><section class="page-header"><div><h1>工具箱</h1><p>完整功能按用途分类；常用入口保持真实状态和原操作流程。</p></div></section><div class="quick-grid"><button class="quick-entry" data-page-link="codex"><strong>客户端管理</strong><small>下载、暂停、安装、卸载</small><b>›</b></button><button class="quick-entry" data-page-link="providers"><strong>密钥与模型</strong><small>Key、协议和高级参数</small><b>›</b></button><button class="quick-entry" id="tool-codex-zh"><strong>汉化</strong><small>构建、启动、移除与恢复</small><b>›</b></button><button class="quick-entry" data-page-link="enhance"><strong>插件与 Codex++</strong><small>增强、插件修复与恢复</small><b>›</b></button><button class="quick-entry" data-page-link="tool-doctor"><strong>工具调用修复</strong><small>Codex Tool Doctor 2.2.0</small><b>›</b></button><button class="quick-entry" data-page-link="extensions"><strong>MCP 与技能</strong><small>插件、MCP、Skill</small><b>›</b></button><button class="quick-entry" data-page-link="sessions"><strong>会话与备份</strong><small>搜索、统计与整库备份</small><b>›</b></button><button class="quick-entry" data-page-link="logs"><strong>日志</strong><small>筛选与脱敏导出</small><b>›</b></button><button class="quick-entry" data-page-link="settings"><strong>设置</strong><small>管理工具更新</small><b>›</b></button></div></section>
+<section class="page" id="page-account"><section class="page-header"><div><h1>我的账号</h1><p>网页授权、余额、Key 同步与推广分享都使用当前真实账号。</p></div></section><section class="panel"><p>账号详情和推广数据在安全弹窗中加载，不在页面缓存凭证。</p><div class="windows-tool-actions"><button class="button primary" data-account-open>登录 / 账号管理</button><button class="button ghost" data-referral-open>分享安装链接</button><button class="button ghost" data-page-link="share-package">生成分享安装包</button></div></section></section>
+<section class="page" id="page-tool-doctor"><section class="page-header"><div><h1>工具调用修复</h1><p>与 Codex++ 插件修复相互独立；明确选择当前 Codex 程序和配置目录。</p></div></section><section class="panel"><label class="field"><span>Codex 配置目录（绝对路径）</span><input id="doctor-home" readonly></label><label class="field"><span>Codex 程序（绝对路径）</span><select id="doctor-binary"></select></label><div class="windows-tool-actions"><button class="button ghost" data-doctor-command="inspect">离线检查</button><button class="button ghost" data-doctor-command="diagnose">诊断（可能耗额度）</button><button class="button primary" data-doctor-command="repair">验证并修复</button><button class="button ghost" data-doctor-command="rollback">撤销修复</button></div><progress id="doctor-progress" max="100" value="0"></progress><div class="windows-tool-actions"><button class="button ghost" id="doctor-cancel" disabled>等待安全阶段取消</button><button class="button ghost" id="doctor-report" disabled>导出脱敏报告</button></div><p class="modal-note">应用前会做两轮候选终端验证；配置或程序变化时拒绝旧计划。修复后请重启 Codex 并新建会话。</p><pre id="windows-tool-output" aria-live="polite"></pre></section></section>
+<section class="page" id="page-share-package"><section class="page-header"><div><h1>分享安装包</h1><p>选择朋友使用的电脑版本，自动下载并生成带有你分享链接的安装包。</p></div></section><section class="panel"><ol class="share-steps" aria-label="生成步骤"><li>选择版本</li><li>选择保存位置</li><li>下载并生成</li></ol><label class="field"><span>朋友使用的电脑</span><select id="share-package-version" disabled aria-describedby="share-release-info"><option value="">正在读取可用版本…</option></select></label><div id="share-release-info" role="status" aria-live="polite">正在向平台查询版本与下载大小…</div><button class="button ghost" id="share-releases-retry">刷新可用版本</button><label class="field"><span>你的平台分享链接</span><input id="share-url" readonly placeholder="登录后自动读取"></label><label class="field"><span>保存位置</span><div class="input-action"><input id="share-output" placeholder="请选择保存安装包的文件夹"><button class="button ghost" id="share-choose">选择位置</button></div></label><progress id="share-progress" aria-label="下载与生成进度" max="100" value="0"></progress><div class="windows-tool-actions"><button class="button primary" id="share-package-create" disabled>下载并生成分享包</button><button class="button ghost" id="share-cancel" disabled>取消生成</button><button class="button ghost" id="share-open" disabled>打开文件夹</button><button class="button ghost" id="share-copy" disabled>复制路径</button></div><pre id="share-output-live" role="status" aria-live="polite"></pre><p class="modal-note">Windows：完整解压后打开 777Codex.exe，点击“注册账号”，自动携带你的分享链接；注册成功后返回客户端网页登录。Mac：先打开包内“先注册账号.webloc”，再安装应用。分享包不包含你的账号凭证、Key 或聊天记录；已有账号不会改绑，以平台注册结果为准。</p></section></section>
+<section class="page" id="page-providers">
           <section class="page-header">
             <div><h1>我的 Key</h1><p>添加 Key，或登录后从平台同步。</p></div>
             <div class="header-actions"><span id="platform-import-status" role="status">正在检查网页关联…</span><button class="button ghost" id="enable-platform-import" hidden>重试网页关联</button><button class="button ghost" id="import-current-provider">导入当前 Codex 配置</button><button class="button primary" data-modal-open="provider-modal">＋ 添加配置</button></div>
@@ -260,9 +262,11 @@
   <dialog id="account-dialog" aria-labelledby="account-dialog-title"><div class="modal-header"><div><span class="eyebrow">777codes 平台账号</span><h2 id="account-dialog-title">账号与推广</h2></div><button type="button" class="icon-button" id="account-dialog-close" aria-label="关闭">×</button></div><div class="modal-body" id="account-dialog-body"></div><div class="modal-footer" id="account-dialog-footer"></div></dialog>
   <dialog id="confirmation-dialog" aria-labelledby="confirmation-title"><div class="modal-header"><h2 id="confirmation-title">确认操作</h2></div><div class="modal-body"><p id="confirmation-message"></p></div><div class="modal-footer"><button type="button" class="button ghost" id="confirmation-cancel">取消操作</button><button type="button" class="button primary" id="confirmation-accept">确认执行</button></div></dialog>
   <script src="./mac-ui.js"></script><script src="./ui.js"></script>
+  <script src="./tool-ui.js"></script>
+<script src="./inline-models.js"></script>
   <script src="./features-ui.js"></script>
   <script src="./account-ui.js"></script>
   <script src="./install-ui.js"></script>
   <script src="./import-ui.js"></script>
-</body>
+<script src="./install-flow.js"></script></body>
 </html>

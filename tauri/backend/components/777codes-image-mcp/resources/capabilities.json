@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "generatedAt": "2026-08-07T00:00:00+08:00",
+  "description": "777codes GPT-Image public contract. The server uses gpt-image-2, one image per request, aspect-ratio sizing, and 1k/2k/4k resolution tiers.",
+  "events": []
+}

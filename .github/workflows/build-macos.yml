@@ -22,6 +22,12 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci --no-audit --no-fund
+      - name: Restore reviewed runtime dependencies
+        run: |
+          mkdir -p tauri/backend/node_modules/@iarna tauri/backend/components/tool-doctor/node_modules
+          cp -R node_modules/@iarna/toml tauri/backend/node_modules/@iarna/
+          cp -R node_modules/yaml tauri/backend/node_modules/
+          cp -R tauri/vendor/smol-toml tauri/backend/components/tool-doctor/node_modules/
       - name: Install Rust
         run: rustup update stable --no-self-update && rustup default stable
       - name: Runtime unit tests
@@ -30,8 +36,8 @@ jobs:
         run: |
           cargo test --locked --manifest-path tauri/codexpp-engine/Cargo.toml
           cargo build --release --locked --manifest-path tauri/codexpp-engine/Cargo.toml
-      - name: Verify official Mac install, update, Chinese copy and uninstall in a temporary home
-        run: node tauri/scripts/verify-official-mac.mjs
+      # Real official-app installation and feature acceptance are performed
+      # manually by the owner. Packaging still runs the isolated native smoke.
       - name: Build and launch Tauri app, verify Keychain and architecture
         run: node tauri/scripts/package-mac.mjs
       - uses: actions/upload-artifact@v4

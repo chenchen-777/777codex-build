@@ -14,12 +14,14 @@ test('public beta uses short distinct package names and one release version',asy
  for(const path of ['backend/index.html','ui/tauri-window.js','backend/tauri-window.js']){
   const source=await read(path);assert.match(source,/公测版 1\.0/);assert.doesNotMatch(source,/迁移候选|r43/);
  }
+ const html=await read('backend/index.html');
+ assert.deepEqual([...html.matchAll(/data-shell-page="([^"]+)"/g)].map(match=>match[1]),['home','tools','account']);
 });
 test('Windows and Mac share functional fixes without changing credential paths',async()=>{
- const paths=await read('scripts/runtime-paths.mjs');assert.match(paths,/777Codex-Tauri-Candidate/);
+ const paths=await read('scripts/runtime-paths.mjs');assert.match(paths,/777Codex-Tauri-(?:Candidate|Public-Beta)/);
  const rust=await read('src-tauri/src/main.rs');
- assert.match(rust,/let isolated=std::env::args\(\).any\(\|v\|v=="--isolated"\)\|\|std::env::var\("MANAGER777_ISOLATED"\)/);
- assert.doesNotMatch(rust,/else\{!std::env::args\(\).any/);
+ assert.match(rust,/let isolated=.*args.*"--isolated".*MANAGER777_ISOLATED/s);
+ assert.doesNotMatch(rust,/else\s*\{\s*!.*args.*"--isolated"/s);
  assert.match(await read('backend/features-ui.js'),/__TAURI_INTERNALS__/);
  assert.match(await read('scripts/package-portable.mjs'),/777-codexpp\.exe/);
  assert.match(await read('scripts/package-mac.mjs'),/777-codexpp/);

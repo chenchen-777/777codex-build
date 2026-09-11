@@ -27,7 +27,8 @@ fn operate(request:&Value)->Result<Value,String>{
     match request["op"].as_str().unwrap_or("") {
         "protect"=>Ok(json!(crypt(value,false)?)),
         "unprotect"=>Ok(json!(crypt(value,true)?)),
-        "chooseDirectory"=>Ok(json!(rfd::FileDialog::new().set_title("选择包含 SKILL.md 的目录").pick_folder().map(|p|p.to_string_lossy().to_string()))),
+        "chooseDirectory"=>Ok(json!(rfd::FileDialog::new().set_title(if value.trim().is_empty(){"选择目录"}else{value}).pick_folder().map(|p|p.to_string_lossy().to_string()))),
+        "chooseZip"=>Ok(json!(rfd::FileDialog::new().set_title("选择官网当前 Windows 公测 ZIP").add_filter("ZIP", &["zip"]).pick_file().map(|p|p.to_string_lossy().to_string()))),
         "openUrl"|"openPath"=>{
             let is_url=request["op"]=="openUrl";
             if is_url {let url=url::Url::parse(value).map_err(|_|"网址无效")?;if !["http","https"].contains(&url.scheme())||url.host_str().is_none()||!url.username().is_empty()||url.password().is_some(){return Err("网址不允许".into())}}

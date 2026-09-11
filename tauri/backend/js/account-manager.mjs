@@ -1,3 +1,5 @@
+import { registrationTarget } from './incoming-referral.mjs';
+import { fileURLToPath as referralFilePath } from 'node:url';
 import { createHash, randomBytes } from "node:crypto";
 import { mkdir, readFile, rename, rm, writeFile } from "node:fs/promises";
 import { join } from "node:path";
@@ -125,6 +127,12 @@ export class AccountManager {
   }
   assertLive() { if (this.isolated) throw new AppError("隔离预览不连接真实平台账号", "ISOLATED_PREVIEW", 403); }
   publicStatus(state, extra = {}) { return { ok: true, state, platformOrigin: PLATFORM_ORIGIN, user: this.user, ...extra }; }
+  async startRegistration() {
+    this.assertLive();
+    const target = await registrationTarget(referralFilePath(new URL('../../', import.meta.url)));
+    await this.openExternal(target.url);
+    return {ok:true,invited:target.invited,message:target.invited?'已打开注册页，分享邀请码将由平台验证并自动填入。注册成功后，回到这里点击“网页登录”。':'已打开普通注册页。注册成功后，回到这里点击“网页登录”。'};
+  }
   async startLogin(deviceName = "Windows 设备") {
     this.assertLive();
     const verifier = base64url(randomBytes(32)); const challenge = base64url(createHash("sha256").update(verifier).digest());

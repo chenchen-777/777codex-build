@@ -8,6 +8,8 @@ import {createHash} from 'node:crypto';
 import {RELEASE,packageName} from './release-info.mjs';
 const exec=promisify(execFile);
 const root=fileURLToPath(new URL('../',import.meta.url));
+const readiness=JSON.parse(await readFile(join(root,'release-readiness.json'),'utf8'));
+if(readiness.publicRedistributable!==true||readiness.userConfirmed!==true)throw Error('Public redistribution permission is not recorded');
 if(process.platform!=='darwin'||!['arm64','x64'].includes(process.arch))throw Error('Use a native macOS arm64/x64 runner');
 const arch=process.arch;
 const scratch=await realpath(await mkdtemp(join(tmpdir(),'777-tauri-package-')));
@@ -27,7 +29,14 @@ await mkdir(join(resources,'licenses'));for(const name of ['LICENSE','NOTICE.md'
 await cp(join(root,'backend'),join(resources,'backend'),{recursive:true,filter:path=>!/[\\/](?:\.dev|\.window-data|node_modules|test)(?:[\\/]|$)/.test(path)});
 await mkdir(join(resources,'runtime'));
 await cp(process.execPath,join(resources,'runtime','node'));await chmod(join(resources,'runtime','node'),0o755);
-for(const dependency of ['@iarna/toml','yaml'])await cp(join(root,'..','node_modules',dependency),join(resources,'backend','node_modules',dependency),{recursive:true});
+// Staging carries only the reviewed runtime dependencies. Do not reach outside
+// the transferred source tree, which also makes both architecture runners use
+// the exact same dependency payload.
+for(const dependency of ['@iarna/toml','yaml'])await cp(join(root,'backend','node_modules',dependency),join(resources,'backend','node_modules',dependency),{recursive:true});
+// Doctor uses a separate pinned TOML parser; preserve it after the generic
+// node_modules exclusion above. The image component is bundled during staging.
+await cp(join(root,'backend','components','tool-doctor','node_modules','smol-toml'),join(resources,'backend','components','tool-doctor','node_modules','smol-toml'),{recursive:true});
+await cp(join(root,'release-readiness.json'),join(resources,'release-readiness.json'));
 await writeFile(join(contents,'Info.plist'),`<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
 <plist version="1.0"><dict>
@@ -55,6 +64,7 @@ if(!smokeResult.ok||!smokeResult.uiLoaded||smokeResult.framework!=='tauri')throw
 await exec(process.execPath,['--test',join(root,'test','mac-native.test.mjs')],{env:{...env,MANAGER777_NATIVE:join(bin,'777-native')},timeout:90000,maxBuffer:4*1024*1024});
 const payload=join(scratch,'download');await mkdir(payload);
 await cp(app,join(payload,'777 Codex.app'),{recursive:true});
+await writeFile(join(payload,'使用说明.txt'),'1. 将 777 Codex 拖到“应用程序”，双击打开。\n2. 登录或注册账号，选择连接密钥。\n3. 按首页提示准备 Codex，等待显示完成。\n4. 点击“打开 Codex 客户端，开始聊天”。\n');
 await writeFile(join(payload,'首次打开说明.html'),`<!doctype html><html lang="zh-CN"><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>777 Codex 首次打开</title><style>body{font:17px/1.8 -apple-system,sans-serif;max-width:680px;margin:48px auto;padding:24px;color:#243b50}a{display:inline-block;padding:12px 20px;background:#243b50;color:white;border-radius:12px;margin:8px 0}</style><h1>777 Codex · 首次打开</h1><p>公测版 ${RELEASE.displayVersion} · ${arch==='arm64'?'Apple 芯片':'Intel'} · 未经 Apple Developer ID 签名和公证的公测版。</p><p>先双击同目录的 777 Codex.app。如出现“Apple 无法验证”，点击“完成”，再打开系统设置。只在确认来源可信且文件校验一致时手动放行。</p><a href="x-apple.systempreferences:com.apple.preference.security?General">打开隐私与安全性</a><p>浏览器可能要求确认打开系统设置。如果链接不可用：苹果菜单 → 系统设置 → 隐私与安全性 → 向下找到安全性 → 777 Codex → 仍要打开。</p><p>此入口不能直接弹出或代替“仍要打开”的授权，也不会关闭系统防护。租用或受管理的 Mac 可能不允许更改此设置。</p><a href="https://support.apple.com/zh-cn/102445">Apple 官方说明</a><p>安装 Codex：工具左侧“Codex 管理” → 下载 → 校验 → 安装。Intel 管理工具可运行不表示官方 Codex 支持 Intel。新 Mac 功能仍需实机验收。</p></html>`);
 const zip=join(dist,packageName('darwin',arch));
 await exec('/usr/bin/ditto',['-c','-k','--sequesterRsrc',payload,zip],{timeout:120000});
