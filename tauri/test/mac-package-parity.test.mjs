@@ -14,6 +14,8 @@ test('Mac staging retains all approved UI and tools, bundles image dependencies'
 test('Mac package preserves Doctor dependency and checks native architecture and window',async()=>{
  const source=await readFile(new URL('../scripts/package-mac.mjs',import.meta.url),'utf8');
  assert.match(source,/'tool-doctor','node_modules','smol-toml'/);
+ assert.match(source,/'share-zip','node_modules'/);
+ assert.match(source,/load\('yauzl'\);load\('yazl'\)/);
  assert.match(source,/readFile\(join\(root,'release-readiness\.json'\)/);
  assert.match(source,/publicRedistributable/);
  assert.match(source,/process.platform!=='darwin'/);

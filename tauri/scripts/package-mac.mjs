@@ -36,6 +36,10 @@ for(const dependency of ['@iarna/toml','yaml'])await cp(join(root,'backend','nod
 // Doctor uses a separate pinned TOML parser; preserve it after the generic
 // node_modules exclusion above. The image component is bundled during staging.
 await cp(join(root,'backend','components','tool-doctor','node_modules','smol-toml'),join(resources,'backend','components','tool-doctor','node_modules','smol-toml'),{recursive:true});
+await cp(join(root,'backend','components','share-zip','node_modules'),join(resources,'backend','components','share-zip','node_modules'),{recursive:true});
+// Probe the packaged tree, not the developer checkout: missing ZIP libraries
+// must fail packaging before a broken application can become an artifact.
+await exec(join(resources,'runtime','node'),['--input-type=module','-e',`import {createRequire} from 'node:module';import {resolve} from 'node:path';const load=createRequire(resolve('components/share-zip/worker.mjs'));load('yauzl');load('yazl');`],{cwd:join(resources,'backend'),timeout:15000});
 await cp(join(root,'release-readiness.json'),join(resources,'release-readiness.json'));
 await writeFile(join(contents,'Info.plist'),`<?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">

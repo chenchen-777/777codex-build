@@ -22,6 +22,8 @@ jobs:
           node-version: '22'
           cache: npm
       - run: npm ci --no-audit --no-fund
+      - name: Install pinned ZIP worker dependencies
+        run: npm ci --prefix tauri/backend/components/share-zip --ignore-scripts --no-audit --no-fund
       - name: Restore reviewed runtime dependencies
         run: |
           mkdir -p tauri/backend/node_modules/@iarna tauri/backend/components/tool-doctor/node_modules
