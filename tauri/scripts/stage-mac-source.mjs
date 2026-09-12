@@ -18,6 +18,7 @@ for(const dir of ['src-tauri/src','src-tauri/permissions','bootstrap','ui','test
 for(const name of ['777codes-round.png','777codes-round.ico'])await copy(join(source,'assets',name),join(stage,'assets',name));
 for(const name of ['sidecar.mjs','login-recovery.mjs','runtime-paths.mjs','home-navigation.mjs','package-mac.mjs','verify-official-mac.mjs','release-info.mjs','package-portable.mjs','pe-imports.mjs','verify-windows-package.mjs','verify-release.py'])await copy(join(source,'scripts',name),join(stage,'scripts',name));
 const backend=join(stage,'backend');
+for(const name of ['connection-recovery.test.mjs','connection-http.test.mjs'])await copy(join(source,'backend','test',name),join(backend,'test',name));
 await copy(join(source,'backend','log-export.js'),join(backend,'log-export.js'));
 for(const name of ['stage-mac-source.mjs','zh-button-copy.mjs'])await copy(join(source,'scripts',name),join(stage,'scripts',name));
 await copy(join(source,'windows-baseline-1.0','features-ui.js'),join(stage,'windows-baseline-1.0','features-ui.js'));

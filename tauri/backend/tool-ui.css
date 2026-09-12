@@ -190,3 +190,6 @@ html,body{background:transparent!important;color-scheme:normal}
 .install-flow-steps li.active{color:var(--accent);border-color:var(--accent)}
 .install-flow-details>summary{cursor:pointer;padding:14px 0;font-size:13px;color:var(--muted)}
 .install-flow-details .primary{background:transparent;color:var(--ink);box-shadow:none;border:1px solid var(--line)}
+
+/* common-connections */
+#page-codex .common-connections{grid-column:1/-1}#page-codex .common-connections .provider-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}#page-codex .common-connections button{min-height:48px;white-space:normal}#page-codex .safety-flow ol{list-style:none;padding:0}@media(max-width:640px){#page-codex .config-preview,#page-codex .safety-flow{grid-column:1/-1}}

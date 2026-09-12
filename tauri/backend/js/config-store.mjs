@@ -1,3 +1,4 @@
+import {officialConfig} from './official-connection.mjs';
 import { createHash, randomBytes } from "node:crypto";
 import {
   chmod,
@@ -250,4 +251,19 @@ export async function read777ConfigState(codexRoot) {
       text: "",
     };
   }
+}
+
+
+export async function applyOfficialConnection(codexRoot) {
+ await mkdir(codexRoot,{recursive:true});
+ await mkdir(join(codexRoot,BACKUP_FOLDER),{recursive:true});
+ const previous=await readOptional(join(codexRoot,'config.toml'));
+ const config=officialConfig(previous.data.toString('utf8'));
+ const backup=await createSnapshot(codexRoot,'before-official-connection');
+ try {
+  await replaceFile(codexRoot,'auth.json','{}\n',randomBytes(5).toString('hex'));
+  await replaceFile(codexRoot,'config.toml',config,randomBytes(5).toString('hex'));
+  if(await readFile(join(codexRoot,'config.toml'),'utf8')!==config || await readFile(join(codexRoot,'auth.json'),'utf8')!=='{}\n')throw new Error('官方连接写入检查失败');
+ } catch(error) {await restoreSnapshot(codexRoot,backup);throw error;}
+ return {ok:true,backupId:backup.backupId,requiresLogin:true};
 }

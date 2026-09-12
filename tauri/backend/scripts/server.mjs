@@ -1,3 +1,4 @@
+import {assertOfficialEnvironment} from '../js/official-connection.mjs';
 import http from "node:http";
 import { randomBytes, randomUUID } from "node:crypto";
 import { access, readFile, readdir, rename, writeFile } from "node:fs/promises";
@@ -5,7 +6,7 @@ import { dirname, extname, join, normalize } from "node:path";
 import { fileURLToPath } from "node:url";
 import { merge777Config } from "../js/config-core.mjs";
 import {
-  apply777Configuration, list777Backups, read777ConfigState,
+  applyOfficialConnection, apply777Configuration, list777Backups, read777ConfigState,
   resolveCodexRoot, rollback777Configuration,
 } from "../js/config-store.mjs";
 import {
@@ -319,6 +320,21 @@ async function handleApi(request, response, pathname) {
   if (request.method === "GET" && pathname === "/api/status") {
     const result = await requestProvider("https://www.777codes.codes", "models");
     sendJson(response, 200, { reachable: result.status === 401 || result.ok, httpStatus: result.status, message: result.message }); return true;
+  }
+  if (request.method === "POST" && pathname === "/api/connection/official") {
+    requireTrusted(request); const payload=await readJsonBody(request);
+    if(payload.confirm!=='USE_OFFICIAL')throw new AppError('请确认切换到官方账号登录','CONFIRMATION_REQUIRED',400);
+    assertOfficialEnvironment(process.env);
+    if(!isolated && (await codexStatus()).running)throw new AppError('请先保存工作并完全退出 Codex，再切换官方连接','CODEX_RUNNING',409);
+    sendJson(response,200,await applyOfficialConnection(codexRoot)); return true;
+  }
+  if (request.method === "POST" && pathname === "/api/connection/official-launch") {
+    requireTrusted(request); assertOfficialEnvironment(process.env);
+    const state=await read777ConfigState(codexRoot);
+    const auth=JSON.parse(await readFile(join(codexRoot,'auth.json'),'utf8'));
+    if(state.provider!=='openai'||state.baseUrl||auth.OPENAI_API_KEY)throw new AppError('官方连接已变化，请重新选择官方连接','CONNECTION_CHANGED',409);
+    if(isolated)throw new AppError('隔离测试不启动真实客户端','ISOLATED_MODE',409);
+    sendJson(response,200,await launchSelectedCodex());return true;
   }
   if (request.method === "GET" && pathname === "/api/local-state") {
     const state = await read777ConfigState(codexRoot); delete state.text; sendJson(response, 200, state); return true;

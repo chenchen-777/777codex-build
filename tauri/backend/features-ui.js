@@ -51,7 +51,7 @@
       ${textField("envVars", "传递的环境变量名（逗号分隔，不填写值）", (entry?.envVars || []).join(", "))}</div>
       <div data-http-fields>${textField("url", "MCP 地址", entry?.url || "", "https://example.com/mcp")}${textField("bearerEnv", "授权环境变量名称（可选）", entry?.bearerEnv || "", "MY_MCP_TOKEN")}</div>
       <div class="form-grid">${textField("startupTimeout", "启动超时／秒", entry?.startupTimeout || 10)}${textField("toolTimeout", "工具超时／秒", entry?.toolTimeout || 60)}</div>
-      <div class="modal-note">新增后默认停用，不下载或执行程序。现有条目的私有环境配置和其他高级字段会保留。保存前创建配置快照。</div>`, async form => {
+      <div class="modal-note">新增后默认停用，不下载或执行程序。现有条目的私有环境配置和其他高级字段会保留。保存前创建配置备份。</div>`, async form => {
       const payload = Object.fromEntries(form); payload.mode = mode; payload.revision = mcp.revision;
       payload.args = payload.args.trim() ? parseArray(payload.args, "参数") : undefined;
       payload.envVars = payload.envVars.split(",").map(x => x.trim()).filter(Boolean);
@@ -131,21 +131,21 @@
     const skillMode = mode === "skills" || (mode === null && tab === "skills");
     const result = await api(skillMode ? "/api/extensions/skills/recoveries" : "/api/extensions/snapshots");
     const rows = skillMode ? result.recoveries : result.snapshots;
-    openDialog(skillMode ? "Skill 恢复记录" : "扩展配置快照", `<p class="modal-note">${skillMode ? "目标目录已存在时不会覆盖；编辑前的副本也保留在这里。" : "恢复整个 config.toml，会影响此快照之后的配置改动；恢复前再备份当前配置。不涉及 auth.json。"}</p><div class="recovery-list">${rows.length ? rows.map((r, i) => `<article><div><strong>${h(r.folder || r.reason)}</strong><p>${h(new Date(r.time).toLocaleString())} · ${h(r.id.slice(0, 8))}</p></div>${button("restore", "恢复", `data-index="${i}"`)}</article>`).join("") : '<div class="empty-inline">没有恢复记录。</div>'}</div>`, null);
+    openDialog(skillMode ? "Skill 恢复记录" : "扩展配置备份", `<p class="modal-note">${skillMode ? "目标目录已存在时不会覆盖；编辑前的副本也保留在这里。" : "恢复整个 config.toml，会影响此备份之后的配置改动；恢复前再备份当前配置。不涉及 auth.json。"}</p><div class="recovery-list">${rows.length ? rows.map((r, i) => `<article><div><strong>${h(r.folder || r.reason)}</strong><p>${h(new Date(r.time).toLocaleString())} · ${h(r.id.slice(0, 8))}</p></div>${button("restore", "恢复", `data-index="${i}"`)}</article>`).join("") : '<div class="empty-inline">没有恢复记录。</div>'}</div>`, null);
     dialog.querySelectorAll('[data-action="restore"]').forEach(b => b.addEventListener("click", () => runButton(b, "恢复中…", async () => {
-      const row = rows[Number(b.dataset.index)]; if (!await ask(skillMode ? "确认恢复此 Skill？目标已存在时会停止。" : "确认恢复整个配置快照？当前配置会先备份。")) return;
+      const row = rows[Number(b.dataset.index)]; if (!await ask(skillMode ? "确认恢复此 Skill？目标已存在时会停止。" : "确认恢复整个配置备份？当前配置会先备份。")) return;
       await post(skillMode ? "/api/extensions/skills/restore" : "/api/extensions/snapshots/restore", { id: row.id, revision: result.revision, confirm: skillMode ? "RESTORE_SKILL" : "RESTORE_EXTENSION_CONFIG" });
       dirty = false; dialog.close(); showToast("恢复完成，请重启 Codex 后检查"); await refresh(); await refreshLogs();
     })));
   }
   async function configBackups() {
     const result = await api("/api/backups"); const rows = result.backups || [];
-    openDialog("Codex 配置快照", `<p class="modal-note">这里是切换供应商和回滚前创建的完整配置快照。恢复会同时还原 config.toml 与当时存在的 auth.json，执行前会再备份当前状态。</p><div class="recovery-list">${rows.length ? rows.map((r, i) => `<article><div><strong>${h(r.reason || "配置变更前")}</strong><p>${h(new Date(r.createdAt).toLocaleString())} · ${h(r.backupId)}</p></div>${button("restore-config", "恢复", `data-index="${i}"`)}</article>`).join("") : '<div class="empty-inline">没有配置快照。</div>'}</div>`, null);
+    openDialog("恢复之前的设置", `<p class="modal-note">选择一个时间，恢复当时的连接和登录设置。恢复前会保存现在的设置；这不是切换平台的入口。</p><div class="recovery-list">${rows.length ? rows.map((r, i) => `<article><div><strong>${h("之前保存的设置")}</strong><p>${h(new Date(r.createdAt).toLocaleString())} · ${h(r.backupId)}</p></div>${button("restore-config", "恢复", `data-index="${i}"`)}</article>`).join("") : '<div class="empty-inline">没有配置备份。</div>'}</div>`, null);
     dialog.querySelectorAll('[data-action="restore-config"]').forEach(b => b.addEventListener("click", () => runButton(b, "恢复中…", async () => {
       const row = rows[Number(b.dataset.index)];
-      if (!await ask(`恢复配置快照 ${row.backupId}？当前配置会先自动备份，恢复后需重启 Codex。`)) return;
+      if (!await ask(`恢复配置备份 ${row.backupId}？当前配置会先自动备份，恢复后需重启 Codex。`)) return;
       await post("/api/rollback", { backupId: row.backupId, confirm: "RESTORE_BACKUP" }); dirty = false; dialog.close();
-      showToast("配置快照已恢复，请重启 Codex 后检查"); await window.manager777.refreshLocalState(); await refreshLogs();
+      showToast("配置备份已恢复，请重启 Codex 后检查"); await window.manager777.refreshLocalState(); await refreshLogs();
     })));
   }
   async function refreshEnhancements() {
@@ -226,7 +226,7 @@
     } catch (e) { failure($("#logs-live"), e); $("#recent-operations").textContent = "日志暂不可读取"; }
   }
   async function refresh() {
-    $("#extension-recovery").textContent = tab === "skills" ? "恢复记录" : "配置快照";
+    $("#extension-recovery").textContent = tab === "skills" ? "恢复记录" : "配置备份";
     $("#extension-add").textContent = tab === "skills" ? "导入／新建 Skill" : tab === "plugins" ? "刷新插件市场" : "添加 MCP";
     if (tab === "mcp") await refreshMcp(); else if (tab === "skills") await refreshSkills(); else await refreshPlugins();
   }

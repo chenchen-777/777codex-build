@@ -96,7 +96,7 @@ export class ModelFollow {
 export async function prepareFollowedModel(follower, apply = apply777Configuration) {
   const current = await follower.refresh();
   if (['unsupported', 'mismatch'].includes(current.status)) throw new AppError(current.message, 'MODEL_SELECTION_UNAVAILABLE', 409);
-  if (!current.canApply) return { applied: false };
+  if (!current.canApply) throw new AppError('尚未确认当前连接，请在连接密钥中点击重新连接后再启动','CONNECTION_NOT_READY',409);
   const profile = await getProviderSecret(follower.managerRoot, current.providerId, follower.adapters().unprotect);
   const config = TOML.parse(await readFile(join(follower.codexRoot, 'config.toml'), 'utf8'));
   if (config.model === profile.model && config.model_reasoning_effort === profile.reasoningEffort) return { applied: false };

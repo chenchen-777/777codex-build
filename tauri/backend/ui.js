@@ -151,7 +151,7 @@
         <div class="provider-main"><div class="mini-logo"><img src="assets/777codes-logo.png" alt="777codes" width="39" height="39"></div><div><div class="provider-title"><strong>${escapeHtml(item.name)}</strong>${item.active ? '<span class="default-tag">当前</span>' : ""}</div><p>${escapeHtml(item.baseUrl)} · ${escapeHtml(item.protocol)} · ${escapeHtml(providerTypeLabel(item.type))}</p></div><span class="health ${item.adapter?.canActivate && item.verifiedAt ? 'success' : ''}">${escapeHtml(providerStatus(item))}</span></div>
         <p class="provider-group" title="平台分组快照；可重新导入或同步更新">${escapeHtml(providerGroupLabel(item))}${item.platformSync ? ' · 平台同步' : ''}</p>
         <div class="provider-details"><span><small>API Key</small><strong>${escapeHtml(item.maskedKey)}</strong></span><span><small>模型</small><strong>${escapeHtml(item.model)}</strong></span><span><small>推理</small><strong>${escapeHtml(item.reasoningEffort)}</strong></span><span><small>存储</small><strong>${item.disableResponseStorage ? "关闭" : "默认"}</strong></span></div>
-        <div class="provider-actions"><button class="button ghost" data-live-verify ${item.adapter?.canSyncModels === false ? 'disabled title="当前配置不可验证"' : ''}>验证</button><button class="button ghost" data-live-edit ${item.platformSync?.disabled ? 'disabled' : ''}>编辑</button><button class="button primary" data-live-use ${(item.active && !item.platformSync?.requiresActivation) || item.adapter?.canActivate === false ? "disabled" : ""}>${item.platformSync?.disabled ? '平台已禁用' : item.adapter?.canActivate === false ? '暂未适配调用' : item.platformSync?.requiresActivation ? '重新选择' : item.active ? '使用中' : '切换使用'}</button><button class="button ghost danger-text" data-live-delete>删除</button></div>
+        <div class="provider-actions"><button class="button ghost" data-live-verify ${item.adapter?.canSyncModels === false ? 'disabled title="当前配置不可验证"' : ''}>验证</button><button class="button ghost" data-live-edit ${item.platformSync?.disabled ? 'disabled' : ''}>编辑</button><button class="button primary" data-live-use ${item.adapter?.canActivate === false ? "disabled" : ""}>${item.platformSync?.disabled ? '平台已禁用' : item.adapter?.canActivate === false ? '暂未适配调用' : item.platformSync?.requiresActivation ? '重新选择' : item.active ? '重新连接' : '切换使用'}</button><button class="button ghost danger-text" data-live-delete>删除</button></div>
       </article>`).join("");
     host.querySelectorAll("[data-live-provider]").forEach((card) => {
       const id = card.dataset.liveProvider;
@@ -180,10 +180,7 @@
   }
 
   async function activateProvider(id, button, launchAfter = false) {
-    if (launchAfter && activeTextProvider()?.id === id && !activeTextProvider()?.platformSync?.requiresActivation) {
-      const result = await runButton(button, '启动中…', () => api('/api/codex/launch', { method: 'POST', body: '{}' }));
-      return Boolean(result);
-    }
+    if (!launchAfter && !await window.manager777.confirm("将此密钥重新应用到 Codex？会先备份原设置，正在运行的 Codex 需要重新打开。")) return false;
     let needsRestart = false;
     if (launchAfter) {
       try {

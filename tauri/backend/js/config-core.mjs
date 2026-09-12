@@ -1,6 +1,8 @@
 const MANAGED_ROOT_KEYS = new Set([
   "model",
   "model_provider",
+  "forced_login_method",
+  "profile",
   "model_reasoning_effort",
   "disable_response_storage",
 ]);
