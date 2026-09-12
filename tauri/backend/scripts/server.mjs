@@ -74,11 +74,13 @@ export function configureRuntimeAdapters(next) { adapters = { ...adapters, ...ne
 export const updateManager = new UpdateManager({
   build: BUILD_INFO,
   managerRoot,
-  installRoot: process.versions.electron ? dirname(process.execPath) : projectRoot,
-  executable: process.execPath,
+  installRoot: process.versions.electron ? dirname(process.execPath) : (process.env.MANAGER777_INSTALL_ROOT || projectRoot),
+  executable: process.versions.electron ? process.execPath : (process.env.MANAGER777_EXECUTABLE || process.execPath),
   publicKeyPath: join(projectRoot, 'js', 'update-public.pem'),
-  helperSource: join(projectRoot, 'electron', 'update-helper.ps1'),
+  helperSource: process.versions.electron ? join(projectRoot, 'electron', 'update-helper.ps1') : join(projectRoot,'scripts',process.platform==='win32'?'tauri-update-windows.ps1':'tauri-update-macos.mjs'),
   isolated,
+  outerPid:Number(process.env.MANAGER777_OUTER_PID||process.ppid),
+  outerStartEpochMs:Number(process.env.MANAGER777_OUTER_START_EPOCH_MS||0),
   scheduleInstall: plan => adapters.scheduleManagerUpdate(plan),
 });
 export const accountManager = new AccountManager({
@@ -259,6 +261,12 @@ async function handleApi(request, response, pathname) {
   }
   if (pathname === '/api/account/referral' && request.method === 'GET') {
     sendJson(response, 200, await accountManager.referral()); return true;
+  }
+  if (pathname === '/api/account/balance' && request.method === 'GET') {
+    requireTrusted(request); sendJson(response,200,await accountManager.balance()); return true;
+  }
+  if (pathname === '/api/account/keys/open-create' && request.method === 'POST') {
+    requireTrusted(request); await readJsonBody(request); if(isolated)throw new AppError('隔离模式不打开外部网页','ISOLATED_PREVIEW',403); await adapters.openExternal('https://www.777codes.codes/keys'); sendJson(response,200,{ok:true}); return true;
   }
   if (pathname.startsWith('/api/account/') && request.method === 'POST') {
     requireTrusted(request); const body = await readJsonBody(request); let result;

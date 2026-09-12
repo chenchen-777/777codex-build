@@ -36,11 +36,7 @@
     document.querySelector('.titlebar')?.addEventListener('mousedown',event=>{
       if(event.button===0&&!event.target.closest('button,a,input,select'))void invoke('drag');
     });
-    const reviewBadge=document.querySelector('.review-badge');if(reviewBadge)reviewBadge.textContent='公测版 1.0';
-    const versionIndicator=document.querySelector('.version-indicator');if(versionIndicator?.lastChild)versionIndicator.lastChild.textContent=' 公测版 1.0';
-    // Electron update payloads cannot be applied to a Tauri distribution.
-    for(const id of ['manager-update-check','manager-update-auto']){
-      const element=document.getElementById(id);if(element){element.disabled=true;element.title='管理工具更新请从官网下载；Codex 更新请进入 Codex 管理';}
-    }
+    document.querySelector('.review-badge').textContent='公测版 1.0 · 安全更新';
+    document.querySelector('.version-indicator').lastChild.textContent=' 公测版 1.0 · 安全更新';
   });
 })();

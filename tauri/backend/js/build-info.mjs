@@ -1,1 +1,1 @@
-export const BUILD_INFO=Object.freeze({"product":"777codex-tauri","version":"1.0.0","revision":101,"revisionLabel":"公测版 1.0 · 连接修复","channel":"public-beta","updateManifestUrl":""});
+export const BUILD_INFO=Object.freeze({"product":"777codex-tauri","version":"1.0.0","revision":103,"revisionLabel":"公测版 1.0 · 账户余额修复","channel":"public-beta","updateManifestUrl":"https://top777ai.com/downloads/777codex/tauri/public-beta/darwin-x64/latest.json"});

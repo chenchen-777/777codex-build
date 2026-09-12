@@ -20,7 +20,7 @@ const invoke=(op,value)=>{const r=spawnSync(native,[],{input:JSON.stringify({op,
 const encrypted=invoke('protect','synthetic-public-beta-only');assert.equal(encrypted.ok,true);
 assert.equal(invoke('unprotect',encrypted.value).value,'synthetic-public-beta-only');
 assert.equal(invoke('openUrl','file:///C:/Windows').ok,false);
-const child=spawn(join(root,'runtime','node.exe'),[join(root,'backend','scripts','sidecar.mjs')],{cwd:root,windowsHide:true,env:{...process.env,MANAGER777_ISOLATED:'1',MANAGER777_STATE_ROOT:state,MANAGER777_NATIVE:native},stdio:['pipe','pipe','pipe']});
+const child=spawn(join(root,'runtime','node.exe'),[join(root,'backend','scripts','sidecar.mjs')],{cwd:root,windowsHide:true,env:{...process.env,MANAGER777_ISOLATED:'1',MANAGER777_STATE_ROOT:state,MANAGER777_NATIVE:native,MANAGER777_CODEXPP:join(root,'helpers','777-codexpp.exe')},stdio:['pipe','pipe','pipe']});
 let stderr='';child.stderr.on('data',b=>stderr+=b.toString().slice(0,1000));
 try{
  const ready=await new Promise((res,rej)=>{

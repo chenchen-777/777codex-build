@@ -20,6 +20,7 @@ test('Mac detection reads bundle metadata, and absent app is not reported instal
  await assert.rejects(macCodexStatus({CODEX_DESKTOP_PATH:bundle},{run:async()=>({stdout:'../escape'}),exists:async()=>true}),e=>e.code==='MAC_APP_INVALID');
 });
 test('Windows installers, repair and update mutations are gated on Mac, common key and MCP routes remain available',()=>{
- for(const path of ['/api/codex/installer/install','/api/codex/uninstall','/api/enhancements/plugin-repair/run','/api/manager-update/install','/api/extensions/image-mcp/install'])assert.equal(macUnavailableRoute(path),true,path);
+ for(const path of ['/api/codex/installer/install','/api/codex/uninstall','/api/enhancements/plugin-repair/run','/api/extensions/image-mcp/install'])assert.equal(macUnavailableRoute(path),true,path);
+ for(const path of ['/api/manager-update/status','/api/manager-update/check','/api/manager-update/download','/api/manager-update/install'])assert.equal(macUnavailableRoute(path),false,path);
  for(const path of ['/api/providers/save','/api/providers/activate','/api/extensions/mcp/save','/api/codex/launch','/api/account/login/start'])assert.equal(macUnavailableRoute(path),false,path);
 });

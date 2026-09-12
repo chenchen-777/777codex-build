@@ -47,5 +47,5 @@ export async function stopMacCodex(environment=process.env) {
 export function macUnavailableRoute(path) {
   if(['/api/enhancements/codexpp/settings','/api/enhancements/codexpp/repair','/api/enhancements/codexpp/launch','/api/enhancements/codexpp/restore'].includes(path))return false;
   if(path.startsWith('/api/extensions/plugins/'))return true;
-  return path.startsWith('/api/codex/installer/')||['/api/codex/download','/api/codex/install','/api/codex/uninstall','/api/codex/run-installer','/api/extensions/image-mcp/install'].includes(path)||path.startsWith('/api/enhancements/')||path.startsWith('/api/manager-update/');
+  return path.startsWith('/api/codex/installer/')||['/api/codex/download','/api/codex/install','/api/codex/uninstall','/api/codex/run-installer','/api/extensions/image-mcp/install'].includes(path)||path.startsWith('/api/enhancements/');
 }

@@ -1,4 +1,4 @@
-import {spawnSync} from 'node:child_process';
+import {spawnSync,spawn} from 'node:child_process';
 import {createInterface} from 'node:readline';
 import {mkdirSync} from 'node:fs';
 import {join,dirname} from 'node:path';
@@ -25,9 +25,6 @@ function native(op,value='') {
 }
 const backend=await import('./server.mjs');
 configureLoginRecovery(backend.accountManager);
-const updateStatus=backend.updateManager.status.bind(backend.updateManager);
-backend.updateManager.status=async()=>({...await updateStatus(),settings:{autoCheck:false},lastCheck:null,ready:null});
-backend.updateManager.check=backend.updateManager.download=backend.updateManager.install=async()=>{throw new Error('管理工具暂不支持自动更新，请从官网下载新版本');};
 backend.configureRuntimeAdapters({
   protect:value=>native('protect',String(value)),unprotect:value=>native('unprotect',String(value)),
   openExternal:async value=>{if(isolated)throw new Error('隔离测试不打开外部网页');return native('openUrl',value);},
@@ -37,7 +34,18 @@ backend.configureRuntimeAdapters({
   chooseZip:async()=>native('chooseZip'),
   importProtocolState:()=>({ok:false,status:'unavailable',message:'请使用网页登录同步账号 Key'}),
   registerImportProtocol:()=>({ok:false,status:'unavailable'}),
-  scheduleManagerUpdate:async()=>{throw new Error('请从官网下载管理工具新版本，不能使用旧版更新包');},
+  scheduleManagerUpdate:async plan=>{
+    let command,args;
+    if(process.platform==='win32'){
+      command=join(process.env.SystemRoot||process.env.WINDIR||'C:\\Windows','System32','WindowsPowerShell','v1.0','powershell.exe');
+      args=['-NoProfile','-NonInteractive','-ExecutionPolicy','Bypass','-File',plan.helperPath,'-Plan',plan.planPath];
+    }else if(process.platform==='darwin'){
+      command=process.execPath;args=[plan.helperPath,plan.planPath];
+    }else throw new Error('此系统暂不支持自动更新');
+    const child=spawn(command,args,{detached:true,stdio:'ignore',windowsHide:true});
+    await new Promise((resolve,reject)=>{child.once('spawn',resolve);child.once('error',reject);});child.unref();
+    return {scheduled:true};
+  },
 });
 const send=value=>process.stdout.write(JSON.stringify(value)+'\n');
 send({kind:'ready',...(await backend.ready),isolated});

@@ -3,11 +3,31 @@ import assert from "node:assert/strict";
 import { mkdtemp, readFile } from "node:fs/promises";
 import { join } from "node:path";
 import { tmpdir } from "node:os";
-import { AccountManager } from "../js/account-manager.mjs";
+import { AccountManager, normalizeAccountBalance } from "../js/account-manager.mjs";
 
 const envelope = data => Response.json({ code: 0, message: "success", data });
 const protect = value => Buffer.from(`protected:${value}`).toString("base64");
 const unprotect = value => Buffer.from(value, "base64").toString("utf8").replace(/^protected:/, "");
+
+test('account balance is fresh, identity-bound, accepts zero and rejects malformed payloads',async()=>{
+ const root=await mkdtemp(join(tmpdir(),'777-balance-'));let calls=0;
+ const manager=new AccountManager({managerRoot:root,protect,unprotect,openExternal:async()=>{},fetcher:async(url,options)=>{calls++;assert.equal(new URL(url).pathname,'/api/v1/desktop/me');assert.equal(options.headers.Authorization,'Bearer balance-access');return envelope({public_user_id:'usr_balance',display_name:'Balance User',account_balance:{amount:0,currency:'USD',source:'account',updated_at:'2026-09-12T00:00:00.000Z'}});}});
+ manager.user={id:'usr_balance',displayName:'Balance User',email:''};manager.accessToken='balance-access';manager.accessExpiresAt=Date.now()+60000;
+ assert.deepEqual((await manager.balance()).balance,{amount:0,currency:'USD',source:'account',updatedAt:'2026-09-12T00:00:00.000Z'});assert.equal((await manager.balance()).balance.amount,0);assert.equal(calls,2);
+ for(const account_balance of [{amount:''},{amount:'1'},{amount:1,currency:'CNY',source:'account',updated_at:'2026-09-12T00:00:00Z'},{amount:1,currency:'USD',source:'quota',updated_at:'2026-09-12T00:00:00Z'},{amount:1,currency:'USD',source:'account',updated_at:'bad'}])assert.throws(()=>normalizeAccountBalance({account_balance}),/余额/);
+ assert.throws(()=>normalizeAccountBalance({}),error=>error.code==='ACCOUNT_BALANCE_UNAVAILABLE');
+});
+
+test('an in-flight balance response is rejected after logout or account switch',async()=>{
+ for(const nextUser of [null,{id:'usr_other',displayName:'Other User',email:''}]){
+  const root=await mkdtemp(join(tmpdir(),'777-balance-race-'));let release;
+  const held=new Promise(resolve=>release=resolve);
+  const manager=new AccountManager({managerRoot:root,protect,unprotect,openExternal:async()=>{},fetcher:async()=>{await held;return envelope({public_user_id:'usr_balance',display_name:'Balance User',account_balance:{amount:19,currency:'USD',source:'account',updated_at:'2026-09-12T00:00:00.000Z'}});}});
+  manager.user={id:'usr_balance',displayName:'Balance User',email:''};manager.accessToken='balance-access';manager.accessExpiresAt=Date.now()+60000;
+  const pending=manager.balance();await Promise.resolve();manager.user=nextUser;release();
+  await assert.rejects(pending,error=>error.code==='ACCOUNT_IDENTITY_CHANGED');
+ }
+});
 
 test("non-JSON HTTP failures retain a safe actionable status without exposing response contents", async () => {
   const root = await mkdtemp(join(tmpdir(), "777-account-http-"));

@@ -517,10 +517,10 @@
     const downloaded = await runButton(button, '↓', () => api('/api/manager-update/download', { method: 'POST', body: '{}' }));
     if (!downloaded) return;
     showToast('更新包下载并校验通过，正在准备重启');
-    await runButton(button, '…', () => api('/api/manager-update/install', { method: 'POST', body: JSON.stringify({ confirm: 'INSTALL_MANAGER_UPDATE' }) }));
+    const installing=await runButton(button, '…', () => api('/api/manager-update/install', { method: 'POST', body: JSON.stringify({ confirm: 'INSTALL_MANAGER_UPDATE' }) }));
+    if(installing?.restarting)await window.window777?.close();
   }
   async function refreshManagerUpdate() {
-    if(window.manager777Mac)return;
     const result = await api('/api/manager-update/status');
     const auto = $('#manager-update-auto');
     auto.classList.toggle('on', result.settings.autoCheck);

@@ -12,9 +12,13 @@ export function normalizeModels(body) {
 
 export function normalizeUsage(body) {
   if (!body || typeof body !== "object") return null;
-  const remaining = body.remaining ?? body.quota?.remaining ?? body.balance ?? body.data?.remaining ?? body.data?.balance;
-  const currency = body.currency ?? body.quota?.currency ?? body.data?.currency ?? "USD";
-  return { remaining: remaining ?? null, currency: String(currency || "USD") };
+  const amounts = [["remaining", body.remaining], ["quota.remaining", body.quota?.remaining], ["balance", body.balance], ["data.remaining", body.data?.remaining], ["data.balance", body.data?.balance]];
+  const selected = amounts.find(([, value]) => value !== null && value !== undefined && value !== "");
+  const number = selected && (typeof selected[1] === "number" || typeof selected[1] === "string" && selected[1].trim()) ? Number(selected[1]) : NaN;
+  const scope = selected?.[0].startsWith("quota.") ? "quota" : selected?.[0].startsWith("data.") ? "data" : "root";
+  const units = scope === "quota" ? [["quota.currency", body.quota?.currency], ["quota.unit", body.quota?.unit]] : scope === "data" ? [["data.currency", body.data?.currency], ["data.unit", body.data?.unit]] : [["currency", body.currency], ["unit", body.unit]];
+  const unit = units.find(([, value]) => typeof value === "string" && value.trim() && value.length <= 32 && !/[\x00-\x1f]/.test(value));
+  return { remaining: Number.isFinite(number) ? number : null, currency: unit ? unit[1].trim() : null, sourceField: selected?.[0] || null, currencySource: unit?.[0] || null };
 }
 
 export function valueForKey(text, key) {

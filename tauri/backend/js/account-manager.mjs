@@ -74,6 +74,14 @@ function normalizeReferral(value) {
     ruleSummary,
   };
 }
+export function normalizeAccountBalance(value) {
+  const data=dataOf(value),raw=object(data?.account_balance ?? data?.accountBalance);
+  ensure(raw,'平台暂未返回账户余额','ACCOUNT_BALANCE_UNAVAILABLE',502);
+  const amount=raw.amount;
+  ensure(typeof amount==='number'&&Number.isFinite(amount)&&amount>=0,'平台账户余额格式无效','PLATFORM_RESPONSE_INVALID',502);
+  ensure(raw.currency==='USD'&&raw.source==='account'&&Number.isFinite(Date.parse(raw.updated_at)),'平台账户余额口径无效','PLATFORM_RESPONSE_INVALID',502);
+  return {amount:Number(amount),currency:'USD',source:'account',updatedAt:new Date(raw.updated_at).toISOString()};
+}
 
 export class AccountManager {
   constructor({ managerRoot, protect, unprotect, openExternal, isolated = false, fetcher = fetch, platformOrigin = PLATFORM_ORIGIN, now = () => Date.now() }) {
@@ -198,6 +206,15 @@ export class AccountManager {
       throw error;
     }
     return { ok: true, ...normalizeReferral(payload) };
+  }
+  async balance() {
+    this.assertLive();const token=await this.access(),identity=this.user?.id;
+    ensure(identity,'尚未登录 777codes','ACCOUNT_LOGIN_REQUIRED',401);
+    const {payload}=await this.request('GET','/api/v1/desktop/me',{token});
+    const data=dataOf(payload),user=normalizeUser(data?.user??data);
+    ensure(this.user?.id===identity,'账号已变化，请刷新后重试','ACCOUNT_IDENTITY_CHANGED',409);
+    ensure(user.id===identity,'账号已变化，请刷新后重试','ACCOUNT_IDENTITY_CHANGED',409);
+    return {ok:true,userId:user.id,balance:normalizeAccountBalance(data)};
   }
   async openReferral() {
     const referral = await this.referral();

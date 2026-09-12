@@ -69,10 +69,11 @@ fn window_action(window:tauri::WebviewWindow,state:State<'_,Backend>,action:Stri
     }
 }
 fn main(){
+    let manager_started_ms=std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).unwrap_or_default().as_millis().to_string();
     std::panic::set_hook(Box::new(|info|{
         if let Ok(exe)=std::env::current_exe(){if let Some(root)=exe.parent(){let _=std::fs::write(root.join("startup-error.txt"),info.to_string());}}
     }));
-    let result=tauri::Builder::default().invoke_handler(tauri::generate_handler![window_action]).setup(|app|{
+    let result=tauri::Builder::default().invoke_handler(tauri::generate_handler![window_action]).setup(move |app|{
         let exe=std::env::current_exe()?;let root=exe.parent().ok_or("程序目录不可用")?;
         let resources=if cfg!(target_os="macos"){app.path().resource_dir()?}else{root.to_path_buf()};
         let backend_root=if cfg!(debug_assertions){std::path::PathBuf::from(env!("CARGO_MANIFEST_DIR")).parent().unwrap().join("backend")}else{resources.join("backend")};
@@ -89,6 +90,8 @@ fn main(){
         if !node.is_file()||!native.is_file(){return Err("程序组件不完整，请完整解压便携压缩包".into())}
         let mut command=Command::new(node);
         command.arg(backend_root.join("scripts/sidecar.mjs")).current_dir(&backend_root).env("MANAGER777_NATIVE",native)
+            .env("MANAGER777_INSTALL_ROOT",if cfg!(target_os="macos"){root.parent().and_then(|p|p.parent()).unwrap_or(root)}else{root})
+            .env("MANAGER777_EXECUTABLE",&exe).env("MANAGER777_OUTER_PID",std::process::id().to_string()).env("MANAGER777_OUTER_START_EPOCH_MS",&manager_started_ms)
             .env("MANAGER777_ISOLATED",if isolated{"1"}else{"0"})
             .stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null());
         if let Some(path)=isolated_state.as_ref(){command.env("MANAGER777_STATE_ROOT",path);}

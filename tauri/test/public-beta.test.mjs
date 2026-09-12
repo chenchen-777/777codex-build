@@ -6,7 +6,7 @@ import {BUILD_INFO} from '../backend/js/build-info.mjs';
 const read=p=>readFile(new URL('../'+p,import.meta.url),'utf8');
 test('public beta uses short distinct package names and one release version',async()=>{
  assert.equal(RELEASE.version,'1.0.0');assert.equal(BUILD_INFO.version,RELEASE.version);
- assert.equal(BUILD_INFO.channel,'public-beta');assert.equal(BUILD_INFO.updateManifestUrl,'');
+ assert.equal(BUILD_INFO.channel,'public-beta');assert.match(BUILD_INFO.updateManifestUrl,/^https:\/\/top777ai\.com\/downloads\/777codex\/tauri\/public-beta\/(?:win32-x64|darwin-(?:arm64|x64))\/latest\.json$/);
  assert.equal(JSON.parse(await read('src-tauri/tauri.conf.json')).version,RELEASE.version);
  const names=[packageName('win32','x64'),packageName('darwin','arm64'),packageName('darwin','x64')];
  assert.equal(new Set(names).size,3);for(const name of names){assert.match(name,/公测版-1\.0\.zip$/);assert.doesNotMatch(name,/Tauri|candidate|0\.12|r43/);}
