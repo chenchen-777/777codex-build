@@ -1,11 +1,11 @@
 import {cp,mkdir,readFile,writeFile,mkdtemp,chmod,realpath} from 'node:fs/promises';
 import {join,resolve} from 'node:path';
-import {fileURLToPath} from 'node:url';
+import {fileURLToPath,pathToFileURL} from 'node:url';
 import {tmpdir} from 'node:os';
 import {execFile} from 'node:child_process';
 import {promisify} from 'node:util';
 import {createHash} from 'node:crypto';
-import {RELEASE,packageName} from './release-info.mjs';
+import {RELEASE,packageName,updateManifestUrl} from './release-info.mjs';
 const exec=promisify(execFile);
 const root=fileURLToPath(new URL('../',import.meta.url));
 const readiness=JSON.parse(await readFile(join(root,'release-readiness.json'),'utf8'));
@@ -27,6 +27,11 @@ await cp(join(root,'codexpp-engine','target','release','777-codexpp'),join(bin,'
 await exec(process.execPath,['--test',join(root,'backend','test','codexpp-manager.test.mjs')],{env:{...process.env,MANAGER777_CODEXPP_TEST_ENGINE:join(bin,'777-codexpp')},timeout:180000,maxBuffer:4*1024*1024});
 await mkdir(join(resources,'licenses'));for(const name of ['LICENSE','NOTICE.md'])await cp(join(root,'codexpp-engine',name),join(resources,'licenses','CodexPlusPlus-'+name));
 await cp(join(root,'backend'),join(resources,'backend'),{recursive:true,filter:path=>!/[\\/](?:\.dev|\.window-data|node_modules|test)(?:[\\/]|$)/.test(path)});
+// Generate the packaged feed from this native runner, never the staging host.
+const packagedBuild={product:'777codex-tauri',version:RELEASE.version,revision:RELEASE.revision,revisionLabel:RELEASE.label,channel:RELEASE.channel,updateManifestUrl:updateManifestUrl('darwin',arch)};
+await writeFile(join(resources,'backend','js','build-info.mjs'),`export const BUILD_INFO=Object.freeze(${JSON.stringify(packagedBuild)});\n`);
+const verifiedBuild=(await import(pathToFileURL(join(resources,'backend','js','build-info.mjs')).href)).BUILD_INFO;
+if(verifiedBuild.revision!==RELEASE.revision||verifiedBuild.updateManifestUrl!==updateManifestUrl('darwin',arch))throw Error('Packaged Mac update identity mismatch');
 await mkdir(join(resources,'runtime'));
 await cp(process.execPath,join(resources,'runtime','node'));await chmod(join(resources,'runtime','node'),0o755);
 // Staging carries only the reviewed runtime dependencies. Do not reach outside
