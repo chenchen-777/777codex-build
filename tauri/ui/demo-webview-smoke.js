@@ -76,7 +76,7 @@
     await wait(()=>fixture.querySelector('[data-inline-model] select'),'inline model mounted in Key card');
     const modelControl=fixture.querySelector('[data-inline-model] select');
     assert(color(modelControl,'fontSize')==='12px','compact model selector font');
-    for(const corner of ['borderTopLeftRadius','borderTopRightRadius','borderBottomLeftRadius','borderBottomRightRadius'])assert(color(modelControl,corner)==='7px','fine model selector corners: '+corner+' = '+color(modelControl,corner));
+    for(const corner of ['borderTopLeftRadius','borderTopRightRadius','borderBottomLeftRadius','borderBottomRightRadius'])assert(color(modelControl,corner)==='12px','unified rounded model selector corners: '+corner+' = '+color(modelControl,corner));
     assert(modelControl.getBoundingClientRect().height===36,'compact model selector height');
     fit('inline model Key card 360px');fixture.remove();
     document.querySelector('#content [data-modal-open="provider-modal"]').click();
