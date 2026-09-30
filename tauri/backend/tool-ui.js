@@ -114,7 +114,7 @@ const accountDialog=$('#account-dialog'),accountName=$('#account-name');
 accountDialog?.addEventListener?.('close',()=>void refresh());
 if(accountName&&typeof MutationObserver!=='undefined')new MutationObserver(()=>void refresh()).observe(accountName,{childList:true,characterData:true,subtree:true});
 window.demoAlignedUI=Object.freeze({refresh,refreshAccount,getSnapshot:()=>structuredClone(snapshot),selectors:Object.freeze({app:'#onboarding-app',content:'#content',home:'[data-shell-page="home"]',tools:'[data-shell-page="tools"]',account:'[data-shell-page="account"]',key:'#shell-key-select',accountCard:'.account-card',balance:'.balance-value'})});
-window.addEventListener('manager777:account-changed',()=>void refresh());window.addEventListener('focus',()=>{if(!keyCreationIdentity||keyCreationIdentity!==identity(snapshot.account))return;keyCreationIdentity='';void syncKeys().catch(()=>{});});void refresh();
+window.addEventListener('manager777:account-changed',event=>{void refresh().then(()=>{const detail=event.detail;if(!detail?.keySyncResult||identity(snapshot.account)!==detail.userId)return;snapshot.keySyncState=detail.keySyncResult.total===0?'empty':'ready';render();});});window.addEventListener('focus',()=>{if(!keyCreationIdentity||keyCreationIdentity!==identity(snapshot.account))return;keyCreationIdentity='';void syncKeys().catch(()=>{});});void refresh();
 // connection-route-fix: route legacy links through the visible shell container.
 document.addEventListener('click',e=>{const link=e.target.closest('[data-page-link]');if(!link||!content.contains(link))return;e.preventDefault();e.stopImmediatePropagation();void openLegacy(link.dataset.pageLink);},true);
 

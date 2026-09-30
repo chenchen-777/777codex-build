@@ -40,13 +40,14 @@
     $("#account-login-check").addEventListener("click", event => runButton(event.currentTarget, "检查中…", poll));
   }
   function schedulePoll(seconds) { clearTimeout(pollTimer); pollTimer = setTimeout(() => void poll(), Math.max(2, Number(seconds) || 3) * 1000); }
-  function accountChanged() { window.dispatchEvent(new CustomEvent("manager777:account-changed")); }
+  function accountChanged(detail) { window.dispatchEvent(new CustomEvent("manager777:account-changed", {detail})); }
   async function completeLogin() {
+    const loginUserId = status.user?.id;
     clearTimeout(pollTimer); pollTimer = null; setHeader(); close(); accountChanged();
     showToast("登录成功，正在同步账号密钥…");
     try {
       const result = await post('/api/account/keys/sync');
-      await window.manager777.refreshProviders(); accountChanged();
+      await window.manager777.refreshProviders(); accountChanged({userId:loginUserId,keySyncResult:result});
       showToast(result.total ? "登录成功，账号密钥已同步。请选择连接后继续。" : "登录成功。还没有连接密钥，请到网页创建后同步。");
     } catch { showToast("已登录，但密钥同步未完成。请点击同步账号密钥重试。", true); }
   }

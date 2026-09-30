@@ -8,7 +8,7 @@ const source=patchLoginUi(original);
 function fixture(post){
  const events=[],timers=[],notices=[];
  const context=vm.createContext({post,status:{state:'pending',expiresAt:new Date(Date.now()+60000).toISOString(),pollInterval:3},polling:false,pollTimer:null,$:()=>({textContent:''}),setHeader(){},close(){},showToast:(...args)=>notices.push(args),schedulePoll:n=>timers.push(n),clearTimeout(){},Date,CustomEvent:class{constructor(type){this.type=type;}},window:{dispatchEvent:e=>events.push(e.type),addEventListener(){},manager777:{refreshProviders:async()=>{}}},document:{addEventListener(){},hidden:false}});
- vm.runInContext(source.slice(source.indexOf('  function accountChanged()'),source.indexOf('  async function copyLink(')),context);
+ vm.runInContext(source.slice(source.indexOf('  function accountChanged('),source.indexOf('  async function copyLink(')),context);
  return{context,events,timers,notices,poll:()=>vm.runInContext('poll()',context)};
 }
 test('closing dialog retains pending authorization; initial pending and focus resume polling',()=>{

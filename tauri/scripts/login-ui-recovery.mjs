@@ -6,13 +6,14 @@ export function patchLoginUi(source){
  source=source.replace('clearTimeout(pollTimer); pollTimer = null; if (dialog.open)', 'if (status.state !== "pending") { clearTimeout(pollTimer); pollTimer = null; } if (dialog.open)');
  const start=source.indexOf('  async function poll() {'),end=source.indexOf('  async function copyLink(',start);
  if(start<0||end<0)throw Error('Login UI poll target missing');
- source=source.slice(0,start)+`  function accountChanged() { window.dispatchEvent(new CustomEvent("manager777:account-changed")); }
+ source=source.slice(0,start)+`  function accountChanged(detail) { window.dispatchEvent(new CustomEvent("manager777:account-changed", {detail})); }
   async function completeLogin() {
+    const loginUserId = status.user?.id;
     clearTimeout(pollTimer); pollTimer = null; setHeader(); close(); accountChanged();
     showToast("登录成功，正在同步账号密钥…");
     try {
       const result = await post('/api/account/keys/sync');
-      await window.manager777.refreshProviders(); accountChanged();
+      await window.manager777.refreshProviders(); accountChanged({userId:loginUserId,keySyncResult:result});
       showToast(result.total ? "登录成功，账号密钥已同步。请选择连接后继续。" : "登录成功。还没有连接密钥，请到网页创建后同步。");
     } catch { showToast("已登录，但密钥同步未完成。请点击同步账号密钥重试。", true); }
   }
@@ -42,4 +43,9 @@ export function patchLoginUi(source){
  source=source.replace('? showPending() : showLogin()', '? (showPending(), schedulePoll(status.pollInterval || 3)) : showLogin()');
  return source;
 }
-export async function applyLoginUiRecovery(target){const path=join(target,'account-ui.js');await writeFile(path,patchLoginUi(await readFile(path,'utf8')));}
+export async function applyLoginUiRecovery(target){
+ const path=join(target,'account-ui.js');await writeFile(path,patchLoginUi(await readFile(path,'utf8')));
+ const shell=join(target,'tool-ui.js');let ui=await readFile(shell,'utf8');
+ ui=ui.replace("window.addEventListener('manager777:account-changed',()=>void refresh());", "window.addEventListener('manager777:account-changed',event=>{void refresh().then(()=>{const detail=event.detail;if(!detail?.keySyncResult||identity(snapshot.account)!==detail.userId)return;snapshot.keySyncState=detail.keySyncResult.total===0?'empty':'ready';render();});});");
+ await writeFile(shell,ui);
+}
