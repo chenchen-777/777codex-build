@@ -53,8 +53,10 @@
   async function poll() {
     if (polling || status.state !== 'pending') return;
     if (status.expiresAt && Date.now() >= Date.parse(status.expiresAt)) {
+      // Let the backend discard the expired PKCE session so a new login can start.
+      try { await post('/api/account/login/poll'); } catch {}
       status = { ...status, state:'logged-out', message:'授权已过期，请重新登录。' };
-      clearTimeout(pollTimer); setHeader(); accountChanged(); showToast(status.message, true); return;
+      clearTimeout(pollTimer); setHeader(); close(); accountChanged(); showToast(status.message, true); return;
     }
     polling = true; clearTimeout(pollTimer);
     try {
