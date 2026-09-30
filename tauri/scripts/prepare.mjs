@@ -5,6 +5,7 @@ import {join} from 'node:path';
 import {applyHomeNavigation} from './home-navigation.mjs';
 import {applyKeyOnboarding} from './key-onboarding.mjs';
 import {applyAccountBalanceUi} from './account-balance-ui.mjs';
+import {applyLoginUiRecovery} from './login-ui-recovery.mjs';
 import {RELEASE,updateManifestUrl} from './release-info.mjs';
 const root=fileURLToPath(new URL('../',import.meta.url));
 const source=fileURLToPath(new URL('../../777codex-desktop-0.11.0/',import.meta.url));
@@ -38,6 +39,7 @@ if(process.platform==='win32'){
   const releaseHtml=await readFile(join(target,'index.html'),'utf8');
   await writeFile(join(target,'index.html'),releaseHtml.replace(/(<span class="review-badge">)[^<]*(<\/span>)/,'$1'+RELEASE.label+'$2').replace(/(<div class="version-indicator"><span><\/span>\s*)[^<]*(<\/div>)/,'$1'+RELEASE.label+'$2'));
   await applyAccountBalanceUi(target);
+  await applyLoginUiRecovery(target);
   await writeFile(join(target,'js','build-info.mjs'),`export const BUILD_INFO=Object.freeze(${JSON.stringify({product:'777codex-tauri',version:RELEASE.version,revision:RELEASE.revision,revisionLabel:RELEASE.label,channel:RELEASE.channel,updateManifestUrl:updateManifestUrl('win32',process.arch)})});\n`);
   // Use the reviewed static-CRT engine, never the legacy dynamic-CRT snapshot.
   const installer=join(source,'engine','target','release','codes777-install-engine.exe');
@@ -77,6 +79,7 @@ await cp(join(root,'scripts','runtime-paths.mjs'),join(target,'scripts','runtime
 await applyHomeNavigation(target);
 await applyKeyOnboarding(target);
 await applyAccountBalanceUi(target);
+await applyLoginUiRecovery(target);
 await mkdir(join(root,'runtime'),{recursive:true});
 await cp(process.execPath,join(root,'runtime',process.platform==='win32'?'node.exe':'node'));
 console.log('Prepared Tauri backend (no Electron runtime, no user configuration).');

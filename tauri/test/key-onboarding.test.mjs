@@ -13,7 +13,7 @@ test('durable onboarding distinguishes empty, failed, selectable and incompatibl
  const choose=ui.slice(ui.indexOf("if(action==='choose-key')"),ui.indexOf("if(action==='balance-refresh')"));
  assert.match(choose,/\/api\/providers\/switch/);assert.match(choose,/confirm:'SWITCH_PROVIDER'/);assert.match(choose,/await refresh\(\)/);assert.doesNotMatch(choose,/home-start-with-key|launch/);
  assert.match(ui,/data-onboarding-choice="true"/);assert.match(ui,/dataset\.onboardingChoice==='true'/);
- assert.match(ui,/sameUser\?\{referral:previous\.referral,keySyncState:previous\.keySyncState,balance:previous\.balance,balanceAt:previous\.balanceAt,accountFetchedAt:previous\.accountFetchedAt\}/);
+ assert.match(ui,/sameUser\?\{referral:previous\.referral,keySyncState:previous\.keySyncState,balance:previous\.balance,balanceAt:previous\.balanceAt,balanceError:previous\.balanceError,accountFetchedAt:previous\.accountFetchedAt\}/);
  assert.ok(ui.indexOf("if(incompatible.length)")<ui.indexOf("snapshot.keySyncState==='failed'"),'incompatible synced keys must not render as confirmed zero');
 });
 
@@ -39,7 +39,7 @@ test('one Key explicitly switches without launching; multiple-Key selection alon
  const document={querySelector:node,querySelectorAll:()=>[],addEventListener:(name,handler)=>events.set(name,[...(events.get(name)||[]),handler])};
  const window={addEventListener(){},manager777:{confirm:async()=>true,refreshProviders:async()=>{}}};
  const fetch=async(path,options)=>{calls.push({path,body:options?.body&&JSON.parse(options.body)});if(path==='/api/providers/switch'){providers=providers.map(x=>({...x,active:x.id==='one'}));return{ok:true,json:async()=>({ok:true})};}const body=path==='/api/providers'?{providers}:path==='/api/account/status'?{state:'logged-in',user:{id:'u1'}}:{installed:false};return{ok:true,json:async()=>body};};
- vm.runInNewContext(seamed,{window,document,fetch,structuredClone,console,Event},{timeout:2000});window.__keyTest.set({account:{state:'logged-in',user:{id:'u1'}},providers:{providers},codex:{installed:false},loading:false});
+ vm.runInNewContext(seamed,{window,document,fetch,structuredClone,console,Event,clearTimeout(){},setTimeout(){},MutationObserver:class{observe(){}disconnect(){}}},{timeout:2000});window.__keyTest.set({account:{state:'logged-in',user:{id:'u1'}},providers:{providers},codex:{installed:false},loading:false});
  for(const handler of events.get('click'))await handler({preventDefault(){},stopImmediatePropagation(){},target:{closest:selector=>selector==='[data-shell-action]'?{dataset:{shellAction:'choose-key'}}:null}});
  assert.equal(calls.filter(x=>x.path==='/api/providers/switch').length,1);assert.equal(calls.some(x=>/launch|restart/.test(x.path)),false);
  const ready=window.__keyTest.home({account:{state:'logged-in',user:{id:'u1'}},providers:{providers:providers.map(x=>({...x,active:true}))},codex:{installed:false},loading:false});assert.match(ready,/准备 Codex 客户端/);

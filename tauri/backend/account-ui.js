@@ -2,9 +2,9 @@
   const { api, showToast, runButton, escapeHtml: h } = window.manager777;
   const $ = selector => document.querySelector(selector);
   const dialog = $("#account-dialog"); const body = $("#account-dialog-body"); const footer = $("#account-dialog-footer");
-  let status = { state: "logged-out", available: true, user: null }; let pollTimer = null; let viewRevision = 0;
+  let status = { state: "logged-out", available: true, user: null }; let pollTimer = null; let viewRevision = 0; let polling = false; // login-recovery-v2
   const post = (path, value = {}) => api(path, { method: "POST", body: JSON.stringify(value) });
-  function close() { viewRevision++; clearTimeout(pollTimer); pollTimer = null; if (dialog.open) dialog.close(); }
+  function close() { viewRevision++; if (status.state !== "pending") { clearTimeout(pollTimer); pollTimer = null; } if (dialog.open) dialog.close(); }
   function open() { if (!dialog.open) dialog.showModal(); }
   function setHeader() {
     const name = $("#account-name"); const chip = $("#account-entry");
@@ -40,13 +40,35 @@
     $("#account-login-check").addEventListener("click", event => runButton(event.currentTarget, "检查中…", poll));
   }
   function schedulePoll(seconds) { clearTimeout(pollTimer); pollTimer = setTimeout(() => void poll(), Math.max(2, Number(seconds) || 3) * 1000); }
+  function accountChanged() { window.dispatchEvent(new CustomEvent("manager777:account-changed")); }
+  async function completeLogin() {
+    clearTimeout(pollTimer); pollTimer = null; setHeader(); close(); accountChanged();
+    showToast("登录成功，正在同步账号密钥…");
+    try {
+      const result = await post('/api/account/keys/sync');
+      await window.manager777.refreshProviders(); accountChanged();
+      showToast(result.total ? "登录成功，账号密钥已同步。请选择连接后继续。" : "登录成功。还没有连接密钥，请到网页创建后同步。");
+    } catch { showToast("已登录，但密钥同步未完成。请点击同步账号密钥重试。", true); }
+  }
   async function poll() {
+    if (polling || status.state !== 'pending') return;
+    if (status.expiresAt && Date.now() >= Date.parse(status.expiresAt)) {
+      status = { ...status, state:'logged-out', message:'授权已过期，请重新登录。' };
+      clearTimeout(pollTimer); setHeader(); accountChanged(); showToast(status.message, true); return;
+    }
+    polling = true; clearTimeout(pollTimer);
     try {
       status = await post("/api/account/login/poll"); setHeader();
-      if (status.state === "logged-in") { showToast("777codes 平台账号登录成功"); close(); if (typeof CustomEvent !== "undefined") window.dispatchEvent(new CustomEvent("manager777:account-changed")); return; }
-      schedulePoll(status.pollInterval || 3);
-    } catch (error) { const target = $("#account-error"); if (target) target.textContent = error.message; }
+      if (status.state === "logged-in") { await completeLogin(); return; }
+      if (status.state === 'pending') schedulePoll(status.pollInterval || 3);
+      else accountChanged();
+    } catch (error) {
+      const target = $("#account-error"); if (target) target.textContent = '登录确认暂时未完成，正在重试：' + error.message;
+      if (status.state === 'pending') schedulePoll(Math.max(5, status.pollInterval || 3));
+    } finally { polling = false; }
   }
+  window.addEventListener('focus', () => { if (status.state === 'pending') void poll(); });
+  document.addEventListener('visibilitychange', () => { if (!document.hidden && status.state === 'pending') void poll(); });
   async function copyLink(input) {
     try { await navigator.clipboard.writeText(input.value); }
     catch { input.select(); if (!document.execCommand("copy")) throw new Error("复制失败，请手动选择链接复制"); }
@@ -99,7 +121,7 @@
     }
   }
   $("#account-dialog-close").addEventListener("click", close); dialog.addEventListener("cancel", event => { event.preventDefault(); close(); });
-  $("#account-entry").addEventListener("click", async () => { try { await refresh(); status.state === "logged-in" || status.state === "offline" ? await showAccount() : status.state === "pending" ? showPending() : showLogin(); } catch (error) { showToast(error.message, true); } });
+  $("#account-entry").addEventListener("click", async () => { try { await refresh(); status.state === "logged-in" || status.state === "offline" ? await showAccount() : status.state === "pending" ? (showPending(), schedulePoll(status.pollInterval || 3)) : showLogin(); } catch (error) { showToast(error.message, true); } });
   $("#referral-share").addEventListener("click", async () => { try { await refresh(); status.state === "logged-in" ? await showAccount({ referral: true }) : showLogin(); } catch (error) { showToast(error.message, true); } });
   $('#sync-platform-keys').addEventListener('click', event => runButton(event.currentTarget, '同步中…', async () => {
     const note = $('#platform-key-sync-status');
@@ -117,5 +139,5 @@
       showToast('平台 Key、分组和倍率已同步');
     } catch (error) { note.textContent = `同步未完成：${error.message}。请检查后重试。`; throw error; }
   }));
-  void refresh().catch(error => { status = { state: "logged-out", available: false, message: error.message }; setHeader(); });
+  void refresh().then(value => { if(value.state === 'pending') schedulePoll(value.pollInterval || 3); }).catch(error => { status = { state: "logged-out", available: false, message: error.message }; setHeader(); });
 })();

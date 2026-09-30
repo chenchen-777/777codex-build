@@ -263,7 +263,7 @@ async function handleApi(request, response, pathname) {
     sendJson(response, 200, await accountManager.referral()); return true;
   }
   if (pathname === '/api/account/balance' && request.method === 'GET') {
-    requireTrusted(request); sendJson(response,200,await accountManager.balance()); return true;
+    sendJson(response,200,await accountManager.balance()); return true;
   }
   if (pathname === '/api/account/keys/open-create' && request.method === 'POST') {
     requireTrusted(request); await readJsonBody(request); if(isolated)throw new AppError('隔离模式不打开外部网页','ISOLATED_PREVIEW',403); await adapters.openExternal('https://www.777codes.codes/keys'); sendJson(response,200,{ok:true}); return true;

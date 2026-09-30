@@ -211,5 +211,15 @@ html,body{background:transparent!important;color-scheme:normal}
 .account-card .balance-value small{display:block;font-size:12px;font-weight:400;letter-spacing:0;line-height:1.7;margin-top:6px;color:var(--muted)}
 @media(max-width:360px){#page-extensions .header-actions{grid-template-columns:minmax(0,1fr)}}
 
+/* Shared form language, including legacy tool pages and dialogs. */
+:root{--control-radius:12px}
+.production-app #content select,.production-app select,dialog select,.modal select{border-radius:var(--control-radius)!important;font-family:"Segoe UI","Microsoft YaHei UI",sans-serif;font-size:12px;font-weight:400;border:1px solid #ffffff20;min-height:36px;max-width:100%;color:#e5ebe9;background-color:#252c34}
+.production-app input:not([type=checkbox]):not([type=radio]):not([type=range]),.production-app textarea,dialog input:not([type=checkbox]):not([type=radio]),dialog textarea,.modal input:not([type=checkbox]):not([type=radio]),.modal textarea,.inline-model-input .model-reload{border-radius:var(--control-radius)!important}
+.production-app select:focus-visible,dialog select:focus-visible,.modal select:focus-visible{outline:2px solid #97bfb4;outline-offset:2px}
+.production-app #content button:not(.link),dialog .button,.modal .button{border-radius:var(--control-radius)!important}
+.connection-operation{position:fixed;z-index:10000;bottom:76px;left:16px;right:16px;max-width:620px;margin:auto;border:1px solid #789e92;border-radius:var(--control-radius);padding:14px 16px;background:#283b35;color:#e5ebe9;font:400 13px/1.7 "Segoe UI","Microsoft YaHei UI",sans-serif;overflow-wrap:anywhere;box-shadow:0 8px 24px #0003}
+.connection-operation.error{background:#3b2d32;border-color:#a97580}
+.production-app select:disabled,.production-app .model-reload:disabled{opacity:.65;cursor:wait}
+
 /* common-connections */
 #page-codex .common-connections{grid-column:1/-1}#page-codex .common-connections .provider-actions{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}#page-codex .common-connections button{min-height:48px;white-space:normal}#page-codex .safety-flow ol{list-style:none;padding:0}@media(max-width:640px){#page-codex .config-preview,#page-codex .safety-flow{grid-column:1/-1}}

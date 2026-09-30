@@ -1,5 +1,5 @@
 // Public names are intentionally independent of storage IDs and updater channels.
-export const RELEASE = Object.freeze({version:'1.0.0',displayVersion:'1.0',label:'公测版 1.0 · 账户余额修复',channel:'public-beta',revision:103,minimumUpdateRevision:102});
+export const RELEASE = Object.freeze({version:'1.0.0',displayVersion:'1.0',label:'公测版 1.0 · 登录与切换体验修复 r105',channel:'public-beta',revision:105,minimumUpdateRevision:102});
 const UPDATE_ORIGIN='https://top777ai.com/downloads/777codex/tauri';
 export function updateTarget(platform,arch){
   if(platform==='win32'&&arch==='x64')return 'win32-x64';
